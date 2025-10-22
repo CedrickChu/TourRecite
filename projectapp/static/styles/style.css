@@ -1,0 +1,91 @@
+
+html{
+    scroll-behavior: smooth;
+}
+body {
+
+    padding: 0;
+    margin: 0;
+    font-family: 'Lato', sans-serif;
+    color: #000;
+}
+body.light-mode{
+    --clr-light: #111827;
+    --clr-dark: #E5E7EB;
+    --clr-slate500: #1F2937;
+    --clr-slate700: #1F2937;
+    --clr-slate800: #1F2937;
+}
+body.light-mode-table{
+    background-color: white!important;
+}
+img,
+picture,
+canvas,
+svg{
+    display: block;
+    max-width: 100%;
+    user-select: none;
+}
+
+
+ul {
+    list-style-type: none;
+  }
+
+a {
+    color: var(--clr-red);
+}
+
+strong {
+    color: var(--clr-blue)
+}
+
+table {
+    border-collapse: collapse;
+    border: 1px solid black!important;
+    width: 100%;
+    overflow-x: hidden;
+    table-layout: fixed;
+
+  }
+  td {
+    word-wrap: break-word;
+    text-align: center;
+    vertical-align: middle;
+}
+  
+  th, td {
+    border: 1px solid black!important; 
+    text-align: left;
+  }
+  .btn:hover{
+    background-color:#32688b!important;
+  }
+  a:hover{  
+    color: rgb(136, 0, 255)!important;
+  }
+  a{
+    text-decoration: none;
+  }
+  .dropdown-menu {
+    display: none !important;
+  }
+
+  .dropdown:hover .dropdown-menu {
+    display: block !important;
+    background-color: ""!important;
+  }
+
+#histogram, #piechart{
+    height: 670px!important;
+}
+.jp-RenderedText pre, .jp-Notebook .jp-Cell:not(.jp-mod-active) .jp-InputPrompt{
+    color: white !important;
+}
+.jp-RenderedHTMLCommon{
+    color: white!important;
+}
+li #logout{
+    background-color: #2563EB!important;
+}

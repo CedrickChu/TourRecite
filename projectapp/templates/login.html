@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Login Page
+{% endblock %}
+
+{% block content %}
+<body class="text-center" style="background: url('/static/images/bg2.jpg') no-repeat center center fixed; background-size: cover;">
+    <div class="container" id="form-login" style='margin-top: 10rem;'>
+        <form method="POST" action="{% url 'login' %}" class="form-group" style='color:black; width:60%; margin:auto'>
+            {% csrf_token %}
+            {{ form.errors }}
+            <h1 class="h3 mb-3 font-weight-normal text-black">
+                Log in to your Account
+            </h1>
+            <br>
+            <label for="id_username"><i class="fa fa-user"></i> Username</label>
+            <input class="form-control" style='width: 80%; margin: auto; border: 1px solid black;' type="text" name="username" required>
+            {% if form.username.errors %}
+                <div class="alert alert-danger">
+                    {{ form.username.errors }}
+                </div>
+            {% endif %}
+                <br><br>
+            <label for="id_password"><i class="fa fa-lock"></i> Password</label>
+            <input class="form-control" style='width: 80%; margin: auto; border: 1px solid black;' type="password" name="password" required>
+            {% if form.password.errors %}
+                <div class="alert alert-danger">
+                    {{ form.password.errors }}
+                </div>
+            {% endif %}
+
+            <br>
+
+
+
+            <div class="checkbox mb-3">
+               <h6>Don't have an account?</h6>
+              <button class="btn btn-sm btn-primary" style="width: 20%; margin: auto; color: white !important;font-size:1rem;"
+                    onclick="location.href='{% url 'register' %}'">
+                Register
+            </button>
+            </div>
+
+            <button type="submit" class="btn btn-fill btn-danger" style='width: 20%; margin: auto;'>Login</button>
+
+        </form>
+    </div>
+</body>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Getting Started{% endblock %}
+{% block content %}
+<div class="container" style="margin-top: 5rem;">
+    <h2 class="text-center">What are you interested in?</h2>
+    <p class="text-center">Choose three or more</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="tag-container">
+            {% for checkbox in form.tags %}
+                <label class="tag-button {% if forloop.counter > form.tags|length|intdiv:2 %}extra-tag{% endif %}">
+                    <span class="icon">+</span>
+                    {{ checkbox.tag }} {{ checkbox }}
+                </label>
+            {% endfor %}
+        </div>
+
+        <div class="text-center mt-2">
+            <button type="button" id="show-more-tags" class="btn btn-link">Show more</button>
+        </div>
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger mt-3">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        <div class="text-center mt-3">
+            <button type="submit" class="btn btn-primary">Save Preferences</button>
+        </div>
+    </form>
+</div>
+
+<style>
+.tag-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.tag-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    background-color: #f2f2f2;
+    border: none;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.tag-button .icon {
+    font-weight: bold;
+    color: #007bff;
+}
+
+.tag-button.selected {
+    border: 1px solid #007bff;
+    background-color: #007bff;
+    color: white;
+}
+
+.tag-button.selected .icon {
+    color: white;
+}
+
+.tag-button:hover {
+    background-color: #e0e0e0;
+}
+
+.tag-button input {
+    display: none; /* hide checkbox */
+}
+
+.extra-tag {
+    display: none; /* hide second half initially */
+}
+</style>
+
+<script>
+document.querySelectorAll('.tag-button').forEach(label => {
+    const icon = label.querySelector('.icon');
+    const checkbox = label.querySelector('input');
+
+    // Initial state
+    if (checkbox.checked) {
+        label.classList.add('selected');
+        icon.textContent = '✔';
+    }
+
+    label.addEventListener('click', () => {
+        checkbox.checked = !checkbox.checked;
+        label.classList.toggle('selected', checkbox.checked);
+        icon.textContent = checkbox.checked ? '✔' : '+';
+    });
+});
+
+// Show more button
+const showMoreBtn = document.getElementById('show-more-tags');
+showMoreBtn.addEventListener('click', () => {
+    document.querySelectorAll('.extra-tag').forEach(label => label.style.display = 'flex');
+    showMoreBtn.style.display = 'none';
+});
+</script>
+{% endblock %}

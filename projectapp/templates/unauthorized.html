@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block navbar %}
+    {% include 'header.html' %}
+{% endblock %}
+
+{% block title %}
+    Unauthorized
+{% endblock %}
+
+{% block content %}
+<section>
+    <h1>Unauthorized</h1>
+    <p>You are not authorized to perform this action.</p>
+    <p>Please <a href="{% url 'login' %}">login</a> or contact the administrator for assistance.</p>
+</section>
+{% endblock %}

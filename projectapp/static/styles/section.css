@@ -1,0 +1,130 @@
+section{
+    width: 70%;
+    margin: auto;
+}
+p{
+    color: black;
+}
+.profile{
+    padding-bottom: 20px;
+}
+.user-profile-image {
+    border-radius: 50%;
+    overflow: hidden;
+    max-width: 60px; 
+    max-height: 60px;
+}
+.main {
+    background-color: white;
+    padding: 1em;
+    padding-bottom: 1.1em;
+    border-radius: 15px;
+    margin: 1em;
+    width: auto;
+    height: 120px;
+}
+.col .username{
+    left: 0;
+
+}
+.username{
+    font-size: 15px;
+    font-weight:900
+}
+
+  
+.card{
+    width: 400px!important;
+    height: 500px!important;
+    border-radius: 6%!important;
+    box-shadow: rgba(136, 165, 191, 0.48) 6px 2px 16px 0px, rgba(255, 255, 255, 0.8) -6px -2px 16px 0px!important;
+}
+
+.recipe-title{
+    color: rgb(4, 89, 110);
+    padding-bottom: 20px;
+
+}
+.recipe-title:hover{
+    text-decoration: none;
+
+}
+.recipe-image {
+    overflow: hidden;
+    height: 255px;
+}
+
+.recipe-image img {
+    transition: transform 0.3s;
+    width: 100%; /* Ensure the image takes the full width of the container */
+    height: auto; /* Maintain the aspect ratio */
+}
+
+.recipe-image:hover img {
+    transform: scale(1.1);
+}
+.recipe-description{
+    width: 90%;
+    margin: auto;
+}
+.left-header{
+    display: flex;
+    gap: 20px;
+}
+.star {
+    font-size: 6vh;
+    cursor: pointer;
+  }
+   
+  .one {
+    color: rgb(255, 0, 0);
+  }
+   
+  .two {
+    color: rgb(255, 106, 0);
+  }
+   
+  .three {
+    color: rgb(251, 255, 120);
+  }
+   
+  .four {
+    color: rgb(255, 255, 0);
+  }
+   
+  .five {
+    color: rgb(24, 159, 14);
+  }
+  .kebab-dropdown {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .kebab-icon {
+    font-size: 24px;
+    cursor: pointer;
+  }
+  
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 120px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+  }
+  
+  .dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+  }
+  
+  .dropdown-content a:hover {
+    background-color: #ddd;
+  }
+  
+  .kebab-dropdown:hover .dropdown-content {
+    display: block;
+  }
