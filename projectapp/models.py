@@ -94,7 +94,23 @@ class Review(models.Model):
     comment = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     
+    @property
+    def likes_count(self):
+        return self.likes.count()
+
+
     
 class ReviewImage(models.Model):
     review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='review_images/')
+
+class ReviewLike(models.Model):
+    review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name='likes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('review', 'user')  
+
+    def __str__(self):
+        return f"{self.user.username} liked review {self.review.id}"

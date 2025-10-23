@@ -19,6 +19,8 @@ urlpatterns = [
     path('post/<int:post_id>/review/add/', views.add_review, name='add_review'),
     path('post/<int:post_id>/', views.post_detail, name='post_detail'),
     path('post/<int:post_id>/rate/', views.post_rating, name='post_rating'),
+    path('review/<int:review_id>/like/', views.toggle_like_review, name='toggle_like_review'),
+
 
 
 

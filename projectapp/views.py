@@ -17,7 +17,7 @@ from django.views.decorators.http import require_POST
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
-from .models import UserProfile, Post, Rating, Collection, ReviewImage
+from .models import UserProfile, Post, Rating, Collection, ReviewImage, ReviewLike, Review
 from .forms import CustomUserCreationForm, PostForm, UserPreferenceForm, ProfileCreationForm, ReviewForm
 
 # ---------- Login View ----------
@@ -183,21 +183,30 @@ def post_detail(request, post_id):
     reviews = post.reviews.order_by('-created_at')
     collection, _ = Collection.objects.get_or_create(user=request.user)
     saved_posts = collection.posts.values_list('id', flat=True)
+    user_liked_review_ids = ReviewLike.objects.filter(
+        user=request.user, review__in=reviews
+    ).values_list('review_id', flat=True)
+
     
     # Average rating
-    average_rating = Rating.objects.filter(post=post).aggregate(Avg('value'))['value__avg']    
+    average_rating = Rating.objects.filter(post=post).aggregate(Avg('value'))['value__avg']
+    
     # User's rating for this post
     try:
         user_rating = Rating.objects.get(user=request.user, post=post).value
     except Rating.DoesNotExist:
         user_rating = 0
 
+    review_form = ReviewForm()
+
     context = {
         'post': post,
         'is_saved': post.id in saved_posts,
         'average_rating': average_rating,
-        'user_rating': user_rating, 
+        'user_rating': user_rating,
         'reviews': reviews,
+        'review_form': review_form, 
+        'user_liked_review_ids': list(user_liked_review_ids),
     }
     return render(request, 'post_detail.html', context)
 
@@ -354,3 +363,20 @@ def post_rating(request, post_id):
         return JsonResponse({'success': True, 'average_rating': average_rating})
 
     return JsonResponse({'success': False, 'error_message': 'Invalid rating value'})
+
+@login_required
+def toggle_like_review(request, review_id):
+    review = get_object_or_404(Review, id=review_id)
+    like, created = ReviewLike.objects.get_or_create(review=review, user=request.user)
+
+    if not created:  # Already liked → remove like
+        like.delete()
+        liked = False
+    else:
+        liked = True
+
+    return JsonResponse({
+        'success': True,
+        'liked': liked,
+        'likes_count': review.likes_count,
+    })

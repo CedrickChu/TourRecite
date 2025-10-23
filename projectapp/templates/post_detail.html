@@ -4,6 +4,134 @@
 {% endblock %}
 {% block content %}
 <style>
+   /* Container for all reviews */
+.card.comments-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+/* Title */
+.card.comments-card .title {
+    font-weight: 600;
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    display: block;
+}
+
+/* Single comment container */
+.comment-container {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 12px;
+    position: relative;
+}
+
+/* User info */
+.user {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.user-pic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-right: 10px;
+}
+
+.user-info span {
+    font-weight: 600;
+    display: block;
+}
+
+.user-info p {
+    font-size: 0.8rem;
+    color: #707277;
+    margin: 0;
+}
+
+/* Comment text */
+.comment-content {
+    font-size: 0.95rem;
+    line-height: 1.4;
+    margin-bottom: 8px;
+}
+
+/* Images in comment */
+.comment-container img {
+    border-radius: 8px;
+    max-width: 100px;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    object-fit: cover;
+}
+
+/* Reaction bar */
+.comment-react {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.comment-react button {
+    background: #f0f2f5;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.comment-react button:hover {
+    background: #e4e6eb;
+}
+
+/* Reply box */
+.text-box {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.text-box textarea {
+    width: 100%;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    resize: none;
+    font-size: 14px;
+    outline: none;
+    margin-right: 8px;
+}
+
+.text-box textarea:focus {
+    border-color: #1877f2;
+}
+
+/* Send button inside reply */
+.text-box .send {
+    background-color: #1877f2;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.text-box .send:hover {
+    background-color: #155db2;
+}
    .review-container {
     width: 500px;
     background: white;
@@ -76,7 +204,7 @@
 .btn-submit:hover {
     background-color: #155db2;
 }
-.star-rating span {
+.star-rating span { 
     font-size: 2rem;
     cursor: pointer;
     color: lightgray;
@@ -168,142 +296,199 @@
     }
 
 </style>
-<section class="d-flex justify-content-center align-items-start" style="min-height: 100vh; padding-top: 50px; padding-bottom: 50px; background-color: #f8f9fa;">
-    <div style="max-width: 800px; width: 100%;">
-        {% if post.image %}
-        <img src="{{ post.image.url }}" alt="{{ post.title }}" style="object-fit: cover; height: 300px;">
-        {% endif %}
-        <div class=" p-4">
-            <h2 class="fw-bold text-center">{{ post.title }}</h2>
-            <p class="text-muted mb-2 small text-center">
-                Category: <span class="fw-medium">{{ post.get_category_display }}</span> |
-                Posted on {{ post.created_at|date:"M j, Y" }}
-            </p>
+<section class="d-flex justify-content-center align-items-start" style="padding-top: 50px; padding-bottom: 10px; background-color: #f8f9fa;">
+  <div style="max-width: 800px; width: 100%;">
+    {% if post.image %}
+    <img src="{{ post.image.url }}" alt="{{ post.title }}" class="w-100 rounded" style="object-fit: cover; height: 300px;">
+    {% endif %}
 
-            <p class=" text-center">{{ post.content }}</p>
+    <div class="p-4">
+      <h2 class="fw-bold text-center">{{ post.title }}</h2>
+      <p class="text-muted mb-2 small text-center">
+        Category: <span class="fw-medium">{{ post.get_category_display }}</span> |
+        Posted on {{ post.created_at|date:"M j, Y" }}
+      </p>
 
-            {% if post.estimated_price %}
-            <p class="fw-semibold text-center">Estimated Price: <span class="text-success">₱{{ post.estimated_price }}</span></p>
-            {% endif %}
+      <p class="text-center">{{ post.content }}</p>
 
-            <div id="map" class="rounded-3 my-3" style="height: 300px;"></div>
+      {% if post.estimated_price %}
+      <p class="fw-semibold text-center">
+        Estimated Price: <span class="text-success">₱{{ post.estimated_price }}</span>
+      </p>
+      {% endif %}
 
-            <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
-                <span onclick="toggleCollection({{ post.id }}, this)" style="cursor:pointer;">
-                    {% if is_saved %}
-                        <svg class="saved-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24">
-                            <path fill="#000" d="M7.5 3.75a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-14a2 2 0 0 0-2-2z"/>
-                        </svg>
-                    {% else %}
-                        <svg class="unsaved-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24">
-                            <path fill="#000" d="M17.5 1.25a.5.5 0 0 1 1 0v2.5H21a.5.5 0 0 1 0 1h-2.5v2.5a.5.5 0 0 1-1 0v-2.5H15a.5.5 0 0 1 0-1h2.5zm-11 4.5a1 1 0 0 1 1-1H11a.5.5 0 0 0 0-1H7.5a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-8.5a.5.5 0 0 0-1 0v7.48l-5.2-4a.5.5 0 0 0-.6 0l-5.2 4z"/>
-                        </svg>
-                    {% endif %}
-                </span>
-                <span class="text-muted small">Click to save/remove</span>
-            </div>
-        </div>
-        <form id="ratingForm">
-    {% csrf_token %}
-    <div id="starRating" class="star-rating">
-        <span data-value="1">★</span>
-        <span data-value="2">★</span>
-        <span data-value="3">★</span>
-        <span data-value="4">★</span>
-        <span data-value="5">★</span>
-        <h3 id="outputText">Rating is: {{ user_rating }}/5</h3>
+      <div id="map" class="rounded-3 my-3" style="height: 300px;"></div>
+
+      <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
+        <span onclick="toggleCollection({{ post.id }}, this)" style="cursor:pointer;">
+          {% if is_saved %}
+          <svg class="saved-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24">
+            <path fill="#000" d="M7.5 3.75a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-14a2 2 0 0 0-2-2z"/>
+          </svg>
+          {% else %}
+          <svg class="unsaved-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24">
+            <path fill="#000" d="M17.5 1.25a.5.5 0 0 1 1 0v2.5H21a.5.5 0 0 1 0 1h-2.5v2.5a.5.5 0 0 1-1 0v-2.5H15a.5.5 0 0 1 0-1h2.5zm-11 4.5a1 1 0 0 1 1-1H11a.5.5 0 0 0 0-1H7.5a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-8.5a.5.5 0 0 0-1 0v7.48l-5.2-4a.5.5 0 0 0-.6 0l-5.2 4z"/>
+          </svg>
+          {% endif %}
+        </span>
+        <span class="text-muted small">Click to save/remove</span>
+      </div>
     </div>
-</form>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const stars = document.querySelectorAll('#starRating span');
-    const outputText = document.getElementById('outputText');
-    const postId = {{ post.id }};
-    let selectedRating = {{ user_rating|default:0 }};
-
-    function highlightStars(rating) {
-        stars.forEach(star => {
-            star.classList.toggle('hover', parseInt(star.dataset.value) <= rating);
-        });
-    }
-
-    highlightStars(selectedRating);
-
-    stars.forEach(star => {
-        const value = parseInt(star.dataset.value);
-
-        star.addEventListener('mouseover', () => highlightStars(value));
-        star.addEventListener('mouseout', () => highlightStars(selectedRating));
-
-        star.addEventListener('click', () => {
-            selectedRating = value;
-            highlightStars(selectedRating);
-            outputText.innerText = `Rating is: ${selectedRating}/5`;
-            submitRating(value);
-        });
-    });
-
-    function submitRating(value) {
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-       fetch(`/post/${postId}/rate/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-            },
-            body: JSON.stringify({ rating_value: value }),  // <-- this is correct
-        })
-        .then(res => res.text())
-        .then(text => {
-            try {
-                const data = JSON.parse(text);
-                if (!data.success) console.error(data.error_message);
-                else console.log('Rating saved', data.average_rating);
-            } catch (err) {
-                console.error('Expected JSON but got HTML. Likely a server error or login redirect.');
-                console.log(text); // This is the HTML error page
-            }
-        })
-        .catch(err => console.error('Error submitting rating:', err));
-    }
-});
-</script>   
-        <div class="post">
-            {% if post.average_rating %}
-                <p id="average-rating">Average Rating: {{ average_rating|floatformat:1 }} / 5 </p>
-            {% else %}
-                <p id="average-rating">No ratings yet.</p>
-            {% endif %}
+    <!-- ⭐ Rating Section -->
+    <div class="text-center mt-4">
+      <form id="ratingForm">
+        {% csrf_token %}
+        <div id="starRating" class="star-rating mb-2">
+          <span data-value="1">★</span>
+          <span data-value="2">★</span>
+          <span data-value="3">★</span>
+          <span data-value="4">★</span>
+          <span data-value="5">★</span>
         </div>
-        <form method="post" enctype="multipart/form-data"
-            class="review-form"
-            action="{% url 'add_review' post.id %}">
-            {% csrf_token %}
-            
-            <!-- Comment -->
-            <div class="form-group mb-3">
-                {{ review_form.comment.label_tag }}
-                {{ review_form.comment }}
-                {% if review_form.comment.errors %}
-                    <div class="text-danger small">{{ review_form.comment.errors }}</div>
-                {% endif %}
-            </div>
+        <h5 id="outputText" class="mb-2">Rating is: {{ user_rating }}/5</h5>
+      </form>
 
-            <!-- Attach images -->
-            <div class="form-group mb-3">
-                {{ review_form.images.label_tag }}
-                {{ review_form.images }}
-                {% if review_form.images.errors %}
-                    <div class="text-danger small">{{ review_form.images.errors }}</div>
-                {% endif %}
-            </div>
+      <div class="post mb-4">
+        {% if post.average_rating %}
+        <p id="average-rating" class="text-muted">Average Rating: {{ average_rating|floatformat:1 }} / 5</p>
+        {% else %}
+        <p id="average-rating" class="text-muted">No ratings yet.</p>
+        {% endif %}
+      </div>
+    </div>
 
-            <button type="submit" class="btn btn-primary">Post Review</button>
-        </form>
+    <!-- 📝 Review Form -->
+    <div class="p-4 mb-5 shadow-sm">
+      <h5 class="text-center mb-3">Leave a Review</h5>
+      <form method="post" enctype="multipart/form-data" class="review-form" action="{% url 'add_review' post.id %}">
+        {% csrf_token %}
+        <div class="form-group mb-3">
+          {{ review_form.comment.label_tag }}
+          {{ review_form.comment }}
+          {% if review_form.comment.errors %}
+          <div class="text-danger small">{{ review_form.comment.errors }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-group mb-3">
+          {{ review_form.images.label_tag }}
+          {{ review_form.images }}
+          {% if review_form.images.errors %}
+          <div class="text-danger small">{{ review_form.images.errors }}</div>
+          {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Post Review</button>
+      </form>
     </div>
     
+    <div class="p-3">
+      <h1 class="title fw-bold mb-2">Reviews</h1><br>
+      <div class="comments">
+        {% for review in reviews %}
+  <div class="border p-2 mb-2 rounded">
+    <strong>{{ review.user.username }}</strong>
+    <p>{{ review.comment }}</p>
+
+    {% if review.images.all %}
+      <div class="d-flex flex-wrap">
+        {% for img in review.images.all %}
+          <img src="{{ img.image.url }}" class="me-2 mb-2" style="max-width: 120px; border-radius: 8px;">
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="comment-react">
+      <button onclick="toggleLike({{ review.id }})" class="like-btn">
+        <span id="heart-{{ review.id }}">
+          {% if review.id in user_liked_review_ids %}
+            ❤️
+          {% else %}
+            🤍
+          {% endif %}
+        </span>
+        <span id="like-count-{{ review.id }}">{{ review.likes_count }}</span>
+      </button>
+    </div>
+
+    <small class="text-muted">{{ review.created_at|date:"M d, Y h:i A" }}</small>
+  </div>
+{% empty %}
+  <p>No reviews yet. Be the first to comment!</p>
+{% endfor %}
+      </div>
+    </div>
+
+<script>
+    function toggleLike(reviewId) {
+        fetch(`/review/${reviewId}/like/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success){
+                const heart = document.getElementById(`heart-${reviewId}`);
+                const count = document.getElementById(`like-count-${reviewId}`);
+                heart.textContent = data.liked ? '❤️' : '🤍';
+                count.textContent = data.likes_count;
+            }
+        });
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      const stars = document.querySelectorAll('#starRating span');
+      const outputText = document.getElementById('outputText');
+      const postId = {{ post.id }};
+      let selectedRating = {{ user_rating|default:0 }};
+
+      function highlightStars(rating) {
+        stars.forEach(star => {
+          star.classList.toggle('hover', parseInt(star.dataset.value) <= rating);
+        });
+      }
+
+      highlightStars(selectedRating);
+
+      stars.forEach(star => {
+        const value = parseInt(star.dataset.value);
+        star.addEventListener('mouseover', () => highlightStars(value));
+        star.addEventListener('mouseout', () => highlightStars(selectedRating));
+        star.addEventListener('click', () => {
+          selectedRating = value;
+          highlightStars(selectedRating);
+          outputText.innerText = `Rating is: ${selectedRating}/5`;
+          submitRating(value);
+        });
+      });
+
+      function submitRating(value) {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        fetch(`/post/${postId}/rate/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+          },
+          body: JSON.stringify({ rating_value: value }),
+        })
+          .then(res => res.text())
+          .then(text => {
+            try {
+              const data = JSON.parse(text);
+              if (!data.success) console.error(data.error_message);
+              else console.log('Rating saved', data.average_rating);
+            } catch (err) {
+              console.error('Expected JSON but got HTML. Likely a server error or login redirect.');
+              console.log(text);
+            }
+          })
+          .catch(err => console.error('Error submitting rating:', err));
+      }
+    });
+  </script>
 </section>
 
 
@@ -361,11 +546,35 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     const fileInput = document.getElementById("id_images");
-    fileInput.addEventListener("change", function() {
-        const files = Array.from(fileInput.files).map(f => f.name).join(", ");
-        if(files) {
-            alert("Selected files: " + files);
-        }
+        fileInput.addEventListener("change", function() {
+            const files = Array.from(fileInput.files).map(f => f.name).join(", ");
+            if(files) {
+                alert("Selected files: " + files);
+            }
+        });
+        document.querySelector('.review-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const list = document.getElementById("review-list");
+                const div = document.createElement("div");
+                div.classList.add("border", "p-2", "mb-2", "rounded");
+                div.innerHTML = `<strong>${data.user}</strong><p>${data.comment}</p><small>${data.created_at}</small>`;
+                list.prepend(div);
+                form.reset();
+            } else {
+                console.log(data.errors);
+            }
+        });
     });
     
 </script>
