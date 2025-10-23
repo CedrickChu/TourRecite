@@ -177,6 +177,8 @@ def create_post(request):
     return render(request, 'create_post.html', {'form': form})
 
 # ---------- Post Detail ----------
+from django.db.models import Avg, Count
+
 @login_required
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
@@ -187,10 +189,14 @@ def post_detail(request, post_id):
         user=request.user, review__in=reviews
     ).values_list('review_id', flat=True)
 
-    
-    # Average rating
-    average_rating = Rating.objects.filter(post=post).aggregate(Avg('value'))['value__avg']
-    
+    # Average rating and number of users who rated
+    rating_stats = Rating.objects.filter(post=post).aggregate(
+        average=Avg('value'),
+        count=Count('id')
+    )
+    average_rating = rating_stats['average']
+    rating_count = rating_stats['count']
+
     # User's rating for this post
     try:
         user_rating = Rating.objects.get(user=request.user, post=post).value
@@ -203,12 +209,14 @@ def post_detail(request, post_id):
         'post': post,
         'is_saved': post.id in saved_posts,
         'average_rating': average_rating,
+        'rating_count': rating_count,  # <--- number of users who rated
         'user_rating': user_rating,
         'reviews': reviews,
         'review_form': review_form, 
         'user_liked_review_ids': list(user_liked_review_ids),
     }
     return render(request, 'post_detail.html', context)
+
 
 # ---------- User Profile ----------
 def user_profile(request, username=None):

@@ -3,6 +3,7 @@
     {% include 'header.html' %}
 {% endblock %}
 {% block content %}
+{% load static%}
 <style>
    /* Container for all reviews */
 .card.comments-card {
@@ -297,127 +298,147 @@
 
 </style>
 <section class="d-flex justify-content-center align-items-start" style="padding-top: 50px; padding-bottom: 10px; background-color: #f8f9fa;">
-  <div style="max-width: 800px; width: 100%;">
-    {% if post.image %}
-    <img src="{{ post.image.url }}" alt="{{ post.title }}" class="w-100 rounded" style="object-fit: cover; height: 300px;">
-    {% endif %}
+    <div style="max-width: 800px; width: 100%;">
+        {% if post.image %}
+        <img src="{{ post.image.url }}" alt="{{ post.title }}" class="w-100 rounded" style="object-fit: cover; height: 300px;">
+        {% endif %}
 
-    <div class="p-4">
-      <h2 class="fw-bold text-center">{{ post.title }}</h2>
-      <p class="text-muted mb-2 small text-center">
-        Category: <span class="fw-medium">{{ post.get_category_display }}</span> |
-        Posted on {{ post.created_at|date:"M j, Y" }}
-      </p>
+        <div class="p-4">
+        <h2 class="fw-bold text-center">{{ post.title }}</h2>
+        <p class="text-muted mb-2 small text-center">
+            Category: <span class="fw-medium">{{ post.get_category_display }}</span> |
+            Posted on {{ post.created_at|date:"M j, Y" }}
+        </p>
 
-      <p class="text-center">{{ post.content }}</p>
+        <p class="text-center">{{ post.content }}</p>
 
-      {% if post.estimated_price %}
-      <p class="fw-semibold text-center">
-        Estimated Price: <span class="text-success">₱{{ post.estimated_price }}</span>
-      </p>
-      {% endif %}
+        {% if post.estimated_price %}
+        <p class="fw-semibold text-center">
+            Estimated Price: <span class="text-success">₱{{ post.estimated_price }}</span>
+        </p>
+        {% endif %}
 
-      <div id="map" class="rounded-3 my-3" style="height: 300px;"></div>
+        <div id="map" class="rounded-3 my-3" style="height: 300px;"></div>
 
-      <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
-        <span onclick="toggleCollection({{ post.id }}, this)" style="cursor:pointer;">
-          {% if is_saved %}
-          <svg class="saved-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24">
-            <path fill="#000" d="M7.5 3.75a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-14a2 2 0 0 0-2-2z"/>
-          </svg>
-          {% else %}
-          <svg class="unsaved-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24">
-            <path fill="#000" d="M17.5 1.25a.5.5 0 0 1 1 0v2.5H21a.5.5 0 0 1 0 1h-2.5v2.5a.5.5 0 0 1-1 0v-2.5H15a.5.5 0 0 1 0-1h2.5zm-11 4.5a1 1 0 0 1 1-1H11a.5.5 0 0 0 0-1H7.5a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-8.5a.5.5 0 0 0-1 0v7.48l-5.2-4a.5.5 0 0 0-.6 0l-5.2 4z"/>
-          </svg>
-          {% endif %}
-        </span>
-        <span class="text-muted small">Click to save/remove</span>
-      </div>
-    </div>
-
-    <!-- ⭐ Rating Section -->
-    <div class="text-center mt-4">
-      <form id="ratingForm">
-        {% csrf_token %}
-        <div id="starRating" class="star-rating mb-2">
-          <span data-value="1">★</span>
-          <span data-value="2">★</span>
-          <span data-value="3">★</span>
-          <span data-value="4">★</span>
-          <span data-value="5">★</span>
+        <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
+            <span onclick="toggleCollection({{ post.id }}, this)" style="cursor:pointer;">
+            {% if is_saved %}
+            <svg class="saved-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24">
+                <path fill="#000" d="M7.5 3.75a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-14a2 2 0 0 0-2-2z"/>
+            </svg>
+            {% else %}
+            <svg class="unsaved-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24">
+                <path fill="#000" d="M17.5 1.25a.5.5 0 0 1 1 0v2.5H21a.5.5 0 0 1 0 1h-2.5v2.5a.5.5 0 0 1-1 0v-2.5H15a.5.5 0 0 1 0-1h2.5zm-11 4.5a1 1 0 0 1 1-1H11a.5.5 0 0 0 0-1H7.5a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-8.5a.5.5 0 0 0-1 0v7.48l-5.2-4a.5.5 0 0 0-.6 0l-5.2 4z"/>
+            </svg>
+            {% endif %}
+            </span>
+            <span class="text-muted small">Click to save/remove</span>
         </div>
-        <h5 id="outputText" class="mb-2">Rating is: {{ user_rating }}/5</h5>
-      </form>
+        </div>
 
-      <div class="post mb-4">
-        {% if post.average_rating %}
-        <p id="average-rating" class="text-muted">Average Rating: {{ average_rating|floatformat:1 }} / 5</p>
-        {% else %}
-        <p id="average-rating" class="text-muted">No ratings yet.</p>
+        <!-- ⭐ Rating Section -->
+        <div class="text-center mt-4">
+        <form id="ratingForm">
+            {% csrf_token %}
+            <div id="starRating" class="star-rating mb-2">
+            <span data-value="1">★</span>
+            <span data-value="2">★</span>
+            <span data-value="3">★</span>
+            <span data-value="4">★</span>
+            <span data-value="5">★</span>
+            </div>
+            <h5 id="outputText" class="mb-2">Rating is: {{ user_rating }}/5</h5>
+        </form>
+
+        <div class="post mb-4">
+            {% if average_rating %}
+                <p id="average-rating">
+                    Average Rating: {{ average_rating|floatformat:1 }} / 5 
+                    ({{ rating_count }} Review{{ rating_count|pluralize }})
+                </p>
+            {% else %}
+                <p id="average-rating">No ratings yet.</p>
+            {% endif %}
+        </div>
+        </div>
+
+        <!-- 📝 Review Form -->
+        <div class="p-4 mb-5 shadow-sm">
+        <h5 class="text-center mb-3">Leave a Review</h5>
+        <form method="post" enctype="multipart/form-data" class="review-form" action="{% url 'add_review' post.id %}">
+            {% csrf_token %}
+            <div class="form-group mb-3">
+            {{ review_form.comment.label_tag }}
+            {{ review_form.comment }}
+            {% if review_form.comment.errors %}
+            <div class="text-danger small">{{ review_form.comment.errors }}</div>
+            {% endif %}
+            </div>
+
+            <div class="form-group mb-3">
+            {{ review_form.images.label_tag }}
+            {{ review_form.images }}
+            {% if review_form.images.errors %}
+            <div class="text-danger small">{{ review_form.images.errors }}</div>
+            {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Post Review</button>
+        </form>
+        </div>
+
+        <div class="p-3">
+            <h5 class="mt-4">Reviews</h5>
+
+<div class="review-list">
+  {% for review in reviews %}
+    <div class="review-card d-flex align-items-start mb-3 p-3 border rounded">
+
+      <!-- Heart / Like -->
+      <div class="me-3 text-center">
+        <button class="like-btn" onclick="toggleLike({{ review.id }})" style="background:none; border:none; cursor:pointer;">
+          <span id="heart-{{ review.id }}">
+            {% if review.id in user_liked_review_ids %}
+              ❤️
+            {% else %}
+              🤍
+            {% endif %}
+          </span>
+        </button>
+        <div id="like-count-{{ review.id }}">{{ review.likes_count }}</div>
+      </div>
+
+      <!-- User info + comment -->
+      <div>
+        <div class="d-flex align-items-center mb-1">
+          <!-- Profile image -->
+          {% if review.user.profile_image %}
+            <img src="{{ review.user.profile_image.url }}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
+          {% else %}
+            <img src="{% static 'images/default.png' %}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
+          {% endif %}
+
+          <div>
+            <strong>{{ review.user.username }}</strong><br>
+            <small class="text-muted">{{ review.created_at|date:"l, F jS \a\\t g:i a" }}</small>
+          </div>
+        </div>
+
+        <p style="margin-left: 50px;">{{ review.comment }}</p>
+
+        {% if review.images.all %}
+        <div class="d-flex flex-wrap" style="margin-left:50px;">
+          {% for img in review.images.all %}
+            <img src="{{ img.image.url }}" class="me-2 mb-2" style="max-width:120px; border-radius:8px;">
+          {% endfor %}
+        </div>
         {% endif %}
       </div>
     </div>
-
-    <!-- 📝 Review Form -->
-    <div class="p-4 mb-5 shadow-sm">
-      <h5 class="text-center mb-3">Leave a Review</h5>
-      <form method="post" enctype="multipart/form-data" class="review-form" action="{% url 'add_review' post.id %}">
-        {% csrf_token %}
-        <div class="form-group mb-3">
-          {{ review_form.comment.label_tag }}
-          {{ review_form.comment }}
-          {% if review_form.comment.errors %}
-          <div class="text-danger small">{{ review_form.comment.errors }}</div>
-          {% endif %}
-        </div>
-
-        <div class="form-group mb-3">
-          {{ review_form.images.label_tag }}
-          {{ review_form.images }}
-          {% if review_form.images.errors %}
-          <div class="text-danger small">{{ review_form.images.errors }}</div>
-          {% endif %}
-        </div>
-
-        <button type="submit" class="btn btn-primary w-100">Post Review</button>
-      </form>
-    </div>
-    
-    <div class="p-3">
-      <h1 class="title fw-bold mb-2">Reviews</h1><br>
-      <div class="comments">
-        {% for review in reviews %}
-  <div class="border p-2 mb-2 rounded">
-    <strong>{{ review.user.username }}</strong>
-    <p>{{ review.comment }}</p>
-
-    {% if review.images.all %}
-      <div class="d-flex flex-wrap">
-        {% for img in review.images.all %}
-          <img src="{{ img.image.url }}" class="me-2 mb-2" style="max-width: 120px; border-radius: 8px;">
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    <div class="comment-react">
-      <button onclick="toggleLike({{ review.id }})" class="like-btn">
-        <span id="heart-{{ review.id }}">
-          {% if review.id in user_liked_review_ids %}
-            ❤️
-          {% else %}
-            🤍
-          {% endif %}
-        </span>
-        <span id="like-count-{{ review.id }}">{{ review.likes_count }}</span>
-      </button>
-    </div>
-
-    <small class="text-muted">{{ review.created_at|date:"M d, Y h:i A" }}</small>
-  </div>
-{% empty %}
-  <p>No reviews yet. Be the first to comment!</p>
-{% endfor %}
-      </div>
+  {% empty %}
+    <p>No reviews yet. Be the first to comment!</p>
+  {% endfor %}
+</div>
     </div>
 
 <script>
