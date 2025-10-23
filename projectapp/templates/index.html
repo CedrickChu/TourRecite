@@ -142,10 +142,8 @@
                     <!-- Traveler’s Choice -->
                     <div class="list-group mt-4">
                         <h6 class="fw-bold mb-3">Traveler’s Choice</h6>
-
                         {% if travelers_page %}
                             {% for post in travelers_page %}
-
                                     {% if post.image %}
                                         <img src="{{ post.image.url }}" 
                                             alt="{{ post.title }}" 
@@ -161,7 +159,7 @@
                                         </h6>
 
                                         <p class="text-muted small mb-2">
-                                            ⭐ {{ post.rating }} / 5 &nbsp;•&nbsp;
+                                            ⭐ {{ post.avg_rating|default:0|floatformat:1 }} / 5 &nbsp;•&nbsp;
                                             {{ post.get_category_display }}
                                         </p>
 

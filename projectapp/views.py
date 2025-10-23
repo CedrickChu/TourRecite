@@ -3,7 +3,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, JsonResponse
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Q, Max
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from django.urls import reverse_lazy
@@ -12,11 +12,12 @@ from django.contrib.auth.models import User
 from functools import wraps
 from django.core.paginator import Paginator
 import json
+from django.views.decorators.http import require_POST
 
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
-from .models import UserProfile, Post, Rating, Collection
+from .models import UserProfile, Post, Rating, Collection, ReviewImage
 from .forms import CustomUserCreationForm, PostForm, UserPreferenceForm, ProfileCreationForm, ReviewForm
 
 # ---------- Login View ----------
@@ -99,12 +100,21 @@ def get_started(request):
 @login_required
 def index_view(request):
     query = request.GET.get('q', '')
+
+    # Base queryset for all posts
     posts = Post.objects.all()
-    top_rated_posts = Post.objects.filter(rating__gte=4).order_by('-rating', '-created_at')
+
+    # Top-rated posts (average rating >= 4)
+    top_rated_posts = Post.objects.annotate(
+        avg_rating=Avg('ratings__value')  # correct related_name
+    ).filter(avg_rating__gte=4).order_by('-avg_rating', '-created_at')
+
+    # Pagination for top-rated posts
     paginator = Paginator(top_rated_posts, 6)
     page_number = request.GET.get('page')
     travelers_page = paginator.get_page(page_number)
 
+    # Search functionality
     if query:
         posts = posts.filter(
             Q(title__icontains=query) |
@@ -112,10 +122,10 @@ def index_view(request):
             Q(tags__name__icontains=query)
         ).distinct()
 
+    # Recommended posts
     recommended_posts = get_recommendations_for_user(request.user, top_n=6)
 
-    travelers_choice = Post.objects.order_by('-rating', '-created_at').first()
-
+    # Fallback if no recommendations
     if not recommended_posts.exists():
         user_profile = UserProfile.objects.filter(user=request.user).first()
         if user_profile and user_profile.tags.exists():
@@ -128,17 +138,24 @@ def index_view(request):
         else:
             recommended_posts = Post.objects.order_by('-created_at')[:6]
 
+    # Travelers’ Choice: posts with the highest single rating
+    travelers_choice = Post.objects.annotate(
+        max_rating=Max('ratings__value')  # correct related_name
+    ).order_by('-max_rating', '-created_at')[:6]  # top 6 posts
+
+    # Saved posts for the current user
     collection, _ = Collection.objects.get_or_create(user=request.user)
     saved_posts = collection.posts.values_list('id', flat=True)
 
+    # Context for template
     context = {
         'posts': posts,
         'recommended_posts': recommended_posts,
         'travelers_choice': travelers_choice,
         'saved_posts': saved_posts,
         'travelers_page': travelers_page,
-
     }
+
     return render(request, 'index.html', context)
 
 # ---------- Admin-Only Post Creation ----------
@@ -179,7 +196,7 @@ def post_detail(request, post_id):
         'post': post,
         'is_saved': post.id in saved_posts,
         'average_rating': average_rating,
-        'user_rating': user_rating,   # send this to template
+        'user_rating': user_rating, 
         'reviews': reviews,
     }
     return render(request, 'post_detail.html', context)
@@ -280,8 +297,13 @@ def get_recommendations_for_user(user, top_n=5):
     recommended_posts = Post.objects.filter(id__in=recommended_post_ids)
     return recommended_posts 
 
+@login_required
 def add_review(request, post_id):
-    post = get_object_or_404(Post, pk=post_id)
+    """
+    Handle posting a new review/comment on a post.
+    Supports normal form submission and AJAX.
+    """
+    post = get_object_or_404(Post, id=post_id)
 
     if request.method == 'POST':
         form = ReviewForm(request.POST, request.FILES)
@@ -290,33 +312,45 @@ def add_review(request, post_id):
             review.user = request.user
             review.post = post
             review.save()
-            return redirect('post_detail', post_id=post.pk)
-    else:
-        form = ReviewForm()
 
-    return render(request, 'post_detail.html', {'post': post, 'form': form})
+            for image in request.FILES.getlist('images'):
+                ReviewImage.objects.create(review=review, image=image)
 
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    "success": True,
+                    "user": review.user.username,
+                    "comment": review.comment,
+                    "created_at": review.created_at.strftime("%b %d, %Y %I:%M %p"),
+                })
+            return redirect('post_detail', post_id=post.id)
+        else:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({"success": False, "errors": form.errors}, status=400)
+
+    return redirect('post_detail', post_id=post.id)
+
+@require_POST
 @login_required
 def post_rating(request, post_id):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)  # parse JSON body
-            rating_value = data.get('rating_value')
-        except (json.JSONDecodeError, KeyError):
-            return JsonResponse({'success': False, 'error_message': 'Invalid JSON data'})
+    try:
+        data = json.loads(request.body) 
+        rating_value = data.get('rating_value')
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error_message': 'Invalid JSON'})
 
-        if rating_value is not None and isinstance(rating_value, int) and 1 <= rating_value <= 5:
-            user = request.user
-            post = get_object_or_404(Post, id=post_id)
+    if rating_value is not None and isinstance(rating_value, int):
+        value = rating_value
+        post = get_object_or_404(Post, id=post_id)
 
-            rating_obj, created = Rating.objects.get_or_create(user=user, post=post)
-            rating_obj.value = rating_value
-            rating_obj.save()
+        rating, created = Rating.objects.update_or_create(
+            user=request.user,
+            post=post,
+            defaults={'value': value}
+        )
 
-            average_rating = Rating.objects.filter(post=post).aggregate(Avg('value'))['value__avg'] or 0
+        average_rating = Rating.objects.filter(post=post).aggregate(Avg('value'))['value__avg']
 
-            return JsonResponse({'success': True, 'average_rating': average_rating})
+        return JsonResponse({'success': True, 'average_rating': average_rating})
 
-        return JsonResponse({'success': False, 'error_message': 'Invalid rating value'})
-
-    return JsonResponse({'success': False, 'error_message': 'Invalid request method'})
+    return JsonResponse({'success': False, 'error_message': 'Invalid rating value'})

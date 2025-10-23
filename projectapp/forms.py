@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.forms import AuthenticationForm
-from .models import User, UserProfile, Post, Tag
+from .models import User, UserProfile, Post, Tag, ReviewImage
 from .models import Review
 
 class CustomUserCreationForm(UserCreationForm):
@@ -86,12 +86,40 @@ class UserPreferenceForm(forms.ModelForm):
         if len(tags) < 3:
             raise forms.ValidationError("Please select at least 3 tags.")
         return tags
-    
+  
+
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+class MultipleFileField(forms.FileField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput(attrs={
+            "multiple": True,
+            "class": "form-control"
+        }))
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        single_file_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            return [single_file_clean(d, initial) for d in data]
+        return single_file_clean(data, initial)
+
 class ReviewForm(forms.ModelForm):
+    images = MultipleFileField(label='Attach images', required=False)
+
     class Meta:
         model = Review
-        fields = ['comment', 'image']
+        fields = ['comment', 'images']
         widgets = {
-            'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'image': forms.ClearableFileInput(attrs={'class': 'form-control mt-2'}),
+            'comment': forms.Textarea(attrs={
+                'placeholder': 'Write a comment...',
+                'rows': 2,
+                'class': 'form-control'
+            }),
         }
+        
+        
+class RatingForm(forms.Form):
+    recipe_id = forms.IntegerField()
+    rating_value = forms.IntegerField(min_value=1, max_value=5)

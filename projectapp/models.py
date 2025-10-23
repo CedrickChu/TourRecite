@@ -52,6 +52,14 @@ class Post(models.Model):
     
     def __str__(self):
         return f"{self.title}"
+    
+    def average_rating(self):
+        ratings = self.ratings.all()
+        if ratings:
+            total_ratings = sum([rating.value for rating in ratings])
+            return total_ratings / len(ratings)
+        else:
+            return 0.0
     class Meta:
         ordering = ['-created_at']
 
@@ -81,8 +89,12 @@ class Collection(models.Model):
     
 
 class Review(models.Model):
-    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='reviews')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='reviews')
     comment = models.TextField()
-    image = models.ImageField(upload_to='review_images/', blank=True, null=True) 
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    
+class ReviewImage(models.Model):
+    review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='review_images/')

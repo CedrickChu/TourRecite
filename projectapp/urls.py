@@ -16,7 +16,7 @@ urlpatterns = [
     path('users/<str:username>/', views.user_profile, name='user_profile'),
     path('toggle_collection/<int:post_id>/', views.toggle_collection, name='toggle_collection'),
     path('remove_collection/<int:post_id>/', views.remove_from_collection, name='remove_collection'),
-    path('post/<int:pk>/add_review/', views.add_review, name='add_review'),
+    path('post/<int:post_id>/review/add/', views.add_review, name='add_review'),
     path('post/<int:post_id>/', views.post_detail, name='post_detail'),
     path('post/<int:post_id>/rate/', views.post_rating, name='post_rating'),
 
