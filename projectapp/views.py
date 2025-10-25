@@ -3,7 +3,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, JsonResponse
-from django.db.models import Avg, Count, Q, Max
+from django.db.models import Avg, Count, Q, Max, Subquery,  OuterRef
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from django.urls import reverse_lazy
@@ -180,43 +180,62 @@ def create_post(request):
 @login_required
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    reviews = post.reviews.select_related('user').order_by('-created_at')
-    collection, _ = Collection.objects.get_or_create(user=request.user)
-    saved_posts = collection.posts.values_list('id', flat=True)
 
+    # Base queryset
+    reviews = post.reviews.select_related('user').all()
+
+    # --- FILTER ---
+    filter_by = request.GET.get('filter', 'all')
+    if filter_by == 'with_photos':
+        reviews = reviews.filter(images__isnull=False).distinct()
+
+    # --- SORT ---
+    sort_by = request.GET.get('sort', 'new')
+
+    # Annotate rating and likes
+    reviews = reviews.annotate(
+        rating_value=Subquery(
+            Rating.objects.filter(user=OuterRef('user_id'), post=post)
+            .values('value')[:1]
+        ),
+        total_likes=Count('likes')
+    )
+
+    # Apply sorting
+    if sort_by == 'new':
+        reviews = reviews.order_by('-created_at')
+    elif sort_by == 'highest':
+        reviews = reviews.order_by('-rating_value', '-created_at')
+    elif sort_by == 'lowest':
+        reviews = reviews.order_by('rating_value', '-created_at')
+    elif sort_by == 'most_likes':
+        reviews = reviews.order_by('-total_likes', '-created_at')
+    elif sort_by == 'least_likes':
+        reviews = reviews.order_by('total_likes', '-created_at')
+
+    # Likes for current user
     user_liked_review_ids = ReviewLike.objects.filter(
         user=request.user, review__in=reviews
     ).values_list('review_id', flat=True)
 
-    # Average rating and number of raters
+    # Average rating
     rating_stats = Rating.objects.filter(post=post).aggregate(
         average=Avg('value'),
         count=Count('id')
     )
-    average_rating = rating_stats['average']
-    rating_count = rating_stats['count']
 
-    try:
-        user_rating = Rating.objects.get(user=request.user, post=post).value
-    except Rating.DoesNotExist:
-        user_rating = 0
-
-    ratings = Rating.objects.filter(post=post)
-    rating_dict = {r.user_id: r.value for r in ratings}
-    for review in reviews:
-        review.rating = rating_dict.get(review.user_id, None)
-
+    # Review form
     review_form = ReviewForm()
 
     context = {
         'post': post,
-        'is_saved': post.id in saved_posts,
-        'average_rating': average_rating,
-        'rating_count': rating_count,
-        'user_rating': user_rating,
         'reviews': reviews,
         'review_form': review_form,
         'user_liked_review_ids': list(user_liked_review_ids),
+        'average_rating': rating_stats['average'],
+        'rating_count': rating_stats['count'],
+        'filter_by': filter_by,
+        'sort_by': sort_by,
     }
     return render(request, 'post_detail.html', context)
 

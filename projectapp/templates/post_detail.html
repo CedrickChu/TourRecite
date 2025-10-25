@@ -447,31 +447,28 @@
         <!-- 📝 Review Form -->
         <div class="p-4 mb-5 shadow-sm">
             <h5 class="text-center mb-3">Leave a Review</h5>
-            <div class="d-flex justify-content-between align-items-center mb-3">
-  <!-- Filter dropdown -->
-                <div class="dropdown">
-                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    Filter by: {{ filter_option|capfirst }}
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="filterDropdown">
-                    <li><a class="dropdown-item" href="?filter=all&sort={{ sort_option }}">All</a></li>
-                    <li><a class="dropdown-item" href="?filter=with_photos&sort={{ sort_option }}">With Photos</a></li>
-                </ul>
+            <div class="d-flex justify-content-between mb-3">
+    <!-- Filter -->
+                <div>
+                    <label>Filter by:</label>
+                    <select id="filterBy" class="form-select">
+                        <option value="all" {{ filter_by|is_selected:"all" }}>All</option>
+                        <option value="with_photos" {{ filter_by|is_selected:"with_photos" }}>With Photos</option>
+                    </select>
                 </div>
 
-                <!-- Sort dropdown -->
-                <div class="dropdown">
-                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    Sort by: 
-                    {% if sort_option == 'highest' %}Highest Review{% elif sort_option == 'lowest' %}Lowest Review{% else %}New{% endif %}
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="sortDropdown">
-                    <li><a class="dropdown-item" href="?filter={{ filter_option }}&sort=new">New</a></li>
-                    <li><a class="dropdown-item" href="?filter={{ filter_option }}&sort=highest">Highest Review</a></li>
-                    <li><a class="dropdown-item" href="?filter={{ filter_option }}&sort=lowest">Lowest Review</a></li>
-                </ul>
+                <!-- Sort -->
+                <div>
+                    <label>Sort by:</label>
+                    <select id="sortBy" class="form-select">
+                        <option value="new" {{ sort_by|is_selected:"new" }}>Newest</option>
+                        <option value="highest_rating" {{ sort_by|is_selected:"highest_rating" }}>Highest Rating</option>
+                        <option value="lowest_rating" {{ sort_by|is_selected:"lowest_rating" }}>Lowest Rating</option>
+                        <option value="most_likes" {{ sort_by|is_selected:"most_likes" }}>Most Likes</option>
+                        <option value="least_likes" {{ sort_by|is_selected:"least_likes" }}>Least Likes</option>
+                    </select>
                 </div>
-                </div>
+            </div>
             <form method="post" enctype="multipart/form-data" class="review-form" action="{% url 'add_review' post.id %}">
                 {% csrf_token %}
                 <div class="panel">
@@ -563,26 +560,25 @@
                                 {% if review.images.all %}
                                 <div class="d-flex flex-wrap" style="margin-left:50px;">
                                     {% for media in review.images.all %}
-                                        {% with file_url=media.image.url %}
-                                            {% if file_url|is_media:"video" %}
-                                                <video controls class="me-2 mb-2" style="max-width:200px; border-radius:8px;">
-                                                    <source src="{{ file_url }}">
-                                                </video>
-
-                                            {% elif file_url|is_media:"audio" %}
-                                                <audio controls class="me-2 mb-2" style="width:200px;">
-                                                    <source src="{{ file_url }}">
-                                                </audio>
-
-                                            {% elif file_url|is_media:"image" %}
-                                                <img src="{{ file_url }}" class="me-2 mb-2" style="max-width:120px; border-radius:8px;">
-
-                                            {% else %}
-                                                <a href="{{ file_url }}" target="_blank" class="me-2 mb-2 d-block">
-                                                    <i class="bi bi-file-earmark-text"></i> Download File
-                                                </a>
-                                            {% endif %}
-                                        {% endwith %}
+                                        {% if media.image %}
+                                            {% with file_url=media.image.url %}
+                                                {% if file_url|is_media:"video" %}
+                                                    <video controls class="me-2 mb-2" style="max-width:200px; border-radius:8px;">
+                                                        <source src="{{ file_url }}">
+                                                    </video>
+                                                {% elif file_url|is_media:"audio" %}
+                                                    <audio controls class="me-2 mb-2" style="width:200px;">
+                                                        <source src="{{ file_url }}">
+                                                    </audio>
+                                                {% elif file_url|is_media:"image" %}
+                                                    <img src="{{ file_url }}" class="me-2 mb-2" style="max-width:120px; border-radius:8px;">
+                                                {% else %}
+                                                    <a href="{{ file_url }}" target="_blank" class="me-2 mb-2 d-block">
+                                                        <i class="bi bi-file-earmark-text"></i> Download File
+                                                    </a>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% endif %}
                                     {% endfor %}
                                 </div>
                                 {% endif %}
@@ -598,6 +594,17 @@
     </div>
 
 <script>
+    document.getElementById('filterBy').addEventListener('change', function() {
+        const params = new URLSearchParams(window.location.search);
+        params.set('filter', this.value);
+        window.location.search = params.toString();
+    });
+
+    document.getElementById('sortBy').addEventListener('change', function() {
+        const params = new URLSearchParams(window.location.search);
+        params.set('sort', this.value);
+        window.location.search = params.toString();
+    });
     document.addEventListener("DOMContentLoaded", function() {
         const attachBtn = document.getElementById("attachBtn");
         const fileInput = document.querySelector('input[type="file"][name="images"]');
