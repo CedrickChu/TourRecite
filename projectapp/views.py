@@ -176,20 +176,19 @@ def create_post(request):
         form = PostForm()
     return render(request, 'create_post.html', {'form': form})
 
-# ---------- Post Detail ----------
-from django.db.models import Avg, Count
 
 @login_required
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    reviews = post.reviews.order_by('-created_at')
+    reviews = post.reviews.select_related('user').order_by('-created_at')
     collection, _ = Collection.objects.get_or_create(user=request.user)
     saved_posts = collection.posts.values_list('id', flat=True)
+
     user_liked_review_ids = ReviewLike.objects.filter(
         user=request.user, review__in=reviews
     ).values_list('review_id', flat=True)
 
-    # Average rating and number of users who rated
+    # Average rating and number of raters
     rating_stats = Rating.objects.filter(post=post).aggregate(
         average=Avg('value'),
         count=Count('id')
@@ -197,11 +196,15 @@ def post_detail(request, post_id):
     average_rating = rating_stats['average']
     rating_count = rating_stats['count']
 
-    # User's rating for this post
     try:
         user_rating = Rating.objects.get(user=request.user, post=post).value
     except Rating.DoesNotExist:
         user_rating = 0
+
+    ratings = Rating.objects.filter(post=post)
+    rating_dict = {r.user_id: r.value for r in ratings}
+    for review in reviews:
+        review.rating = rating_dict.get(review.user_id, None)
 
     review_form = ReviewForm()
 
@@ -209,14 +212,13 @@ def post_detail(request, post_id):
         'post': post,
         'is_saved': post.id in saved_posts,
         'average_rating': average_rating,
-        'rating_count': rating_count,  # <--- number of users who rated
+        'rating_count': rating_count,
         'user_rating': user_rating,
         'reviews': reviews,
-        'review_form': review_form, 
+        'review_form': review_form,
         'user_liked_review_ids': list(user_liked_review_ids),
     }
     return render(request, 'post_detail.html', context)
-
 
 # ---------- User Profile ----------
 def user_profile(request, username=None):
@@ -276,9 +278,35 @@ def get_similar_posts(post_id, n=5):
 # ---------- Build User-Post Matrix ----------
 def build_user_post_matrix():
     data = []
-    for collection in Collection.objects.prefetch_related('posts', 'user'):
+    posts = Post.objects.prefetch_related('tags')  # assuming Post has a ManyToManyField 'tags'
+    collections = Collection.objects.prefetch_related('posts__tags', 'user')
+
+    for collection in collections:
         for post in collection.posts.all():
-            data.append({'user_id': collection.user.id, 'post_id': post.id, 'value': 1})
+            data.append({
+                'user_id': collection.user.id,
+                'post_id': post.id,
+                'value': 1.0  
+            })
+
+    # --- Add tag similarity influence ---
+    for collection in collections:
+        # get all tags from the user's saved posts
+        user_tags = set(
+            tag.id for post in collection.posts.all() for tag in post.tags.all()
+        )
+
+        # find all posts that share these tags
+        tagged_posts = posts.filter(tags__id__in=user_tags).distinct()
+
+        for post in tagged_posts:
+            if post in collection.posts.all():
+                continue
+            data.append({
+                'user_id': collection.user.id,
+                'post_id': post.id,
+                'value': 0.3 
+            })
 
     if not data:
         return pd.DataFrame()

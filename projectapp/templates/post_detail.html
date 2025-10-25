@@ -4,10 +4,91 @@
 {% endblock %}
 {% block content %}
 {% load static%}
+{% load custom_filters %}
+
 <style>
+
+.star-rating span {
+    font-size: 20px;
+}
+.panel-body {
+    padding: 25px 20px;
+    box-shadow: #555 0 2px 4px 0;
+}
+
+
+.media-block .media-left {
+    display: block;
+    float: left
+}
+
+.media-block .media-right {
+    float: right
+}
+
+.media-block .media-body {
+    display: block;
+    overflow: hidden;
+    width: auto
+}
+
+.middle .media-left,
+.middle .media-right,
+.middle .media-body {
+    vertical-align: middle
+}
+
+.thumbnail {
+    border-radius: 0;
+    border-color: #e9e9e9
+}
+
+.tag.tag-sm, .btn-group-sm>.tag {
+    padding: 5px 10px;
+}
+
+.tag:not(.label) {
+    background-color: #fff;
+    padding: 6px 12px;
+    border-radius: 2px;
+    border: 1px solid #cdd6e1;
+    font-size: 12px;
+    line-height: 1.42857;
+    vertical-align: middle;
+    -webkit-transition: all .15s;
+    transition: all .15s;
+}
+.text-muted, a.text-muted:hover, a.text-muted:focus {
+    color: #acacac;
+}
+.text-sm {
+    font-size: 0.9em;
+}
+.text-5x, .text-4x, .text-5x, .text-2x, .text-lg, .text-sm, .text-xs {
+    line-height: 1.25;
+}
+
+.btn-trans {
+    background-color: transparent;
+    border-color: transparent;
+    color: #929292;
+}
+
+.btn-icon {
+    padding-left: 9px;
+    padding-right: 9px;
+}
+
+.btn-sm, .btn-group-sm>.btn, .btn-icon.btn-sm {
+    padding: 5px 10px !important;
+}
+
+.mar-top {
+    margin-top: 15px;
+}
    /* Container for all reviews */
 .card.comments-card {
-    background: #fff;
+    background: #d6d6d6ff;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     padding: 20px;
@@ -362,86 +443,179 @@
         </div>
         </div>
 
+
         <!-- 📝 Review Form -->
         <div class="p-4 mb-5 shadow-sm">
-        <h5 class="text-center mb-3">Leave a Review</h5>
-        <form method="post" enctype="multipart/form-data" class="review-form" action="{% url 'add_review' post.id %}">
-            {% csrf_token %}
-            <div class="form-group mb-3">
-            {{ review_form.comment.label_tag }}
-            {{ review_form.comment }}
-            {% if review_form.comment.errors %}
-            <div class="text-danger small">{{ review_form.comment.errors }}</div>
-            {% endif %}
-            </div>
+            <h5 class="text-center mb-3">Leave a Review</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+  <!-- Filter dropdown -->
+                <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    Filter by: {{ filter_option|capfirst }}
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                    <li><a class="dropdown-item" href="?filter=all&sort={{ sort_option }}">All</a></li>
+                    <li><a class="dropdown-item" href="?filter=with_photos&sort={{ sort_option }}">With Photos</a></li>
+                </ul>
+                </div>
 
-            <div class="form-group mb-3">
-            {{ review_form.images.label_tag }}
-            {{ review_form.images }}
-            {% if review_form.images.errors %}
-            <div class="text-danger small">{{ review_form.images.errors }}</div>
-            {% endif %}
-            </div>
+                <!-- Sort dropdown -->
+                <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    Sort by: 
+                    {% if sort_option == 'highest' %}Highest Review{% elif sort_option == 'lowest' %}Lowest Review{% else %}New{% endif %}
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+                    <li><a class="dropdown-item" href="?filter={{ filter_option }}&sort=new">New</a></li>
+                    <li><a class="dropdown-item" href="?filter={{ filter_option }}&sort=highest">Highest Review</a></li>
+                    <li><a class="dropdown-item" href="?filter={{ filter_option }}&sort=lowest">Lowest Review</a></li>
+                </ul>
+                </div>
+                </div>
+            <form method="post" enctype="multipart/form-data" class="review-form" action="{% url 'add_review' post.id %}">
+                {% csrf_token %}
+                <div class="panel">
+                    <div class="panel-body">
+                        <!-- Comment textarea -->
+                        <div class="form-group mb-2">
+                            {{ review_form.comment }}
+                            {% if review_form.comment.errors %}
+                                <div class="text-danger small">{{ review_form.comment.errors }}</div>
+                            {% endif %}
+                        </div>
 
-            <button type="submit" class="btn btn-primary w-100">Post Review</button>
-        </form>
+                        <!-- Hidden file input -->
+                        <div class="form-group mb-2 d-none">
+                            {{ review_form.images }}
+                            {% if review_form.images.errors %}
+                                <div class="text-danger small">{{ review_form.images.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Buttons: attach + submit -->
+                        <div class="mar-top clearfix">
+                            <!-- Paperclip icon -->
+                             <button class="btn btn-sm btn-primary pull-right" type="submit"><i class="fa fa-pencil fa-fw"></i> Share</button>
+                            <a href="#" id="attachBtn" class="btn btn-trans btn-icon bi bi-paperclip add-tooltip"
+                            title="Attach images"></a>
+
+                
+                        </div>
+
+                        <!-- Optional: preview filenames -->
+                        <div id="filePreview" class="mt-2 small text-muted"></div>
+                    </div>
+                </div>
+            </form>
+                <div class="panel">
+                <div class="panel-body">
+                    <div class="p-3">
+                        <h5 class="mt-4">Reviews</h5>
+
+                        <div class="review-list">
+                        {% for review in reviews %}
+                            <div class="review-card d-flex align-items-start mb-3 p-3 border rounded">
+
+                            <!-- Heart / Like -->
+                            <div class="me-3 text-center">
+                                <button class="like-btn" onclick="toggleLike({{ review.id }})" style="background:none; border:none; cursor:pointer;">
+                                <span id="heart-{{ review.id }}">
+                                    {% if review.id in user_liked_review_ids %}
+                                    ❤️
+                                    {% else %}
+                                    🤍
+                                    {% endif %}
+                                </span>
+                                </button>
+                                <div id="like-count-{{ review.id }}">{{ review.likes_count }}</div>
+                            </div>
+
+                            <!-- User info + comment -->
+                            <div>
+                                <div class="d-flex align-items-center mb-1">
+                                <!-- Profile image -->
+                                {% if review.user.profile_image %}
+                                    <img src="{{ review.user.profile_image.url }}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
+                                {% else %}
+                                    <img src="{% static 'images/default.png' %}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
+                                {% endif %}
+
+                                <div>
+                                    <strong>{{ review.user.username }}</strong><br>
+                                    <small class="text-muted">{{ review.created_at|date:"l, F jS \a\\t g:i a" }}</small>
+                                </div>
+                                </div>
+                                <!-- Rating stars -->
+                                {% if review.rating %}
+                                <div class="star-rating mb-2">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= review.rating %}
+                                            <span class="text-warning">★</span>
+                                        {% else %}
+                                            <span class="text-secondary">★</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+
+                                <p style="margin-left: 50px;">{{ review.comment }}</p>
+
+                                {% if review.images.all %}
+                                <div class="d-flex flex-wrap" style="margin-left:50px;">
+                                    {% for media in review.images.all %}
+                                        {% with file_url=media.image.url %}
+                                            {% if file_url|is_media:"video" %}
+                                                <video controls class="me-2 mb-2" style="max-width:200px; border-radius:8px;">
+                                                    <source src="{{ file_url }}">
+                                                </video>
+
+                                            {% elif file_url|is_media:"audio" %}
+                                                <audio controls class="me-2 mb-2" style="width:200px;">
+                                                    <source src="{{ file_url }}">
+                                                </audio>
+
+                                            {% elif file_url|is_media:"image" %}
+                                                <img src="{{ file_url }}" class="me-2 mb-2" style="max-width:120px; border-radius:8px;">
+
+                                            {% else %}
+                                                <a href="{{ file_url }}" target="_blank" class="me-2 mb-2 d-block">
+                                                    <i class="bi bi-file-earmark-text"></i> Download File
+                                                </a>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            </div>
+                        {% empty %}
+                            <p>No reviews yet. Be the first to comment!</p>
+                        {% endfor %}
+                        </div>
+                    </div>
+                </div>
         </div>
-
-        <div class="p-3">
-            <h5 class="mt-4">Reviews</h5>
-
-<div class="review-list">
-  {% for review in reviews %}
-    <div class="review-card d-flex align-items-start mb-3 p-3 border rounded">
-
-      <!-- Heart / Like -->
-      <div class="me-3 text-center">
-        <button class="like-btn" onclick="toggleLike({{ review.id }})" style="background:none; border:none; cursor:pointer;">
-          <span id="heart-{{ review.id }}">
-            {% if review.id in user_liked_review_ids %}
-              ❤️
-            {% else %}
-              🤍
-            {% endif %}
-          </span>
-        </button>
-        <div id="like-count-{{ review.id }}">{{ review.likes_count }}</div>
-      </div>
-
-      <!-- User info + comment -->
-      <div>
-        <div class="d-flex align-items-center mb-1">
-          <!-- Profile image -->
-          {% if review.user.profile_image %}
-            <img src="{{ review.user.profile_image.url }}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
-          {% else %}
-            <img src="{% static 'images/default.png' %}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
-          {% endif %}
-
-          <div>
-            <strong>{{ review.user.username }}</strong><br>
-            <small class="text-muted">{{ review.created_at|date:"l, F jS \a\\t g:i a" }}</small>
-          </div>
-        </div>
-
-        <p style="margin-left: 50px;">{{ review.comment }}</p>
-
-        {% if review.images.all %}
-        <div class="d-flex flex-wrap" style="margin-left:50px;">
-          {% for img in review.images.all %}
-            <img src="{{ img.image.url }}" class="me-2 mb-2" style="max-width:120px; border-radius:8px;">
-          {% endfor %}
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  {% empty %}
-    <p>No reviews yet. Be the first to comment!</p>
-  {% endfor %}
-</div>
     </div>
 
 <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const attachBtn = document.getElementById("attachBtn");
+        const fileInput = document.querySelector('input[type="file"][name="images"]');
+        const preview = document.getElementById("filePreview");
+
+        attachBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            fileInput.click(); 
+        });
+        fileInput.addEventListener("change", function() {
+            if (fileInput.files.length > 0) {
+                const files = Array.from(fileInput.files).map(f => f.name).join(', ');
+                preview.textContent = "📎 " + files;
+            } else {
+                preview.textContent = "";
+            }
+        });
+    });
     function toggleLike(reviewId) {
         fetch(`/review/${reviewId}/like/`, {
             method: 'POST',
@@ -510,6 +684,7 @@
       }
     });
   </script>
+ 
 </section>
 
 

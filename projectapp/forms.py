@@ -95,7 +95,7 @@ class MultipleFileField(forms.FileField):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("widget", MultipleFileInput(attrs={
             "multiple": True,
-            "class": "form-control"
+            "class": "form-control d-none",  
         }))
         super().__init__(*args, **kwargs)
 
@@ -113,12 +113,11 @@ class ReviewForm(forms.ModelForm):
         fields = ['comment', 'images']
         widgets = {
             'comment': forms.Textarea(attrs={
-                'placeholder': 'Write a comment...',
+                'placeholder': 'What are you thinking?',
                 'rows': 2,
-                'class': 'form-control'
+                'class': 'form-control',
             }),
         }
-        
         
 class RatingForm(forms.Form):
     recipe_id = forms.IntegerField()

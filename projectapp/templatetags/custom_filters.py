@@ -14,3 +14,20 @@ def intdiv(value, divisor):
 @stringfilter
 def endswith(value, suffix):
     return value.endswith(suffix)
+
+
+@register.filter
+def is_media(value, media_type):
+    """
+    Check if a file URL ends with certain media extensions.
+    Usage: {{ file_url|is_media:"video" }}
+    media_type can be: "video", "audio", "image"
+    """
+    value = value.lower()
+    if media_type == "video":
+        return value.endswith((".mp4", ".webm", ".ogg"))
+    elif media_type == "audio":
+        return value.endswith((".mp3", ".wav", ".ogg"))
+    elif media_type == "image":
+        return value.endswith((".jpg", ".jpeg", ".png", ".gif"))
+    return False
