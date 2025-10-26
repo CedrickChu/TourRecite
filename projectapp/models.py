@@ -49,6 +49,14 @@ class Post(models.Model):
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
 
     # likes = models.ManyToManyField(UserProfile, blank=True, related_name='liked_posts')
+    @property
+    def all_images(self):
+        """Get all images including main image and additional images"""
+        images = []
+        if self.image:  
+            images.append(self.image)
+        images.extend([img.image for img in self.post_images.all()])
+        return images
     
     def __str__(self):
         return f"{self.title}"
@@ -135,3 +143,12 @@ class FuelPrice(models.Model):
     
     def __str__(self):
         return f"Fuel Prices - {self.last_updated.strftime('%b %d, %Y')}"
+    
+    
+class PostImage(models.Model):
+    post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='post_images/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image for {self.post.title}"

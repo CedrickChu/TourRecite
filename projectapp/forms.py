@@ -1,9 +1,27 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.forms import AuthenticationForm
-from .models import User, UserProfile, Post, Tag, ReviewImage
+from .models import User, UserProfile, Post, Tag, ReviewImage, PostImage
 from .models import Review
 
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+    
+    
+class MultipleFileField(forms.FileField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput(attrs={
+            "multiple": True,
+            "class": "form-control d-none",  
+        }))
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        single_file_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            return [single_file_clean(d, initial) for d in data]
+        return single_file_clean(data, initial)
+    
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'placeholder':'Email'}))
 
@@ -42,16 +60,42 @@ class LogoutForm(forms.Form):
     pass
 
 class PostForm(forms.ModelForm):
+    images = MultipleFileField(
+        label='Additional Images',
+        required=False,
+        help_text='Select multiple images for your post'
+    )
+
     class Meta:
         model = Post
-        fields = ['title', 'content', 'image', 'tags', 'latitude', 'longitude']
+        fields = ['title', 'content', 'image', 'tags', 'latitude', 'longitude', 'images']
         widgets = {
             'tags': forms.CheckboxSelectMultiple(),
             'content': forms.Textarea(attrs={'rows': 4}),
             'title': forms.TextInput(attrs={'placeholder': 'Title of your post'}),
             'latitude': forms.NumberInput(attrs={'placeholder': 'Latitude', 'step': '0.000001'}),
             'longitude': forms.NumberInput(attrs={'placeholder': 'Longitude', 'step': '0.000001'}),
+            'image': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make main image optional if you're using multiple images
+        self.fields['image'].required = False
+
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+        
+        # Save multiple images
+        if self.cleaned_data.get('images'):
+            for image_file in self.cleaned_data['images']:
+                PostImage.objects.create(post=instance, image=image_file)
+        
+        return instance
+
 
 
 
@@ -88,22 +132,6 @@ class UserPreferenceForm(forms.ModelForm):
         return tags
   
 
-class MultipleFileInput(forms.ClearableFileInput):
-    allow_multiple_selected = True
-
-class MultipleFileField(forms.FileField):
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("widget", MultipleFileInput(attrs={
-            "multiple": True,
-            "class": "form-control d-none",  
-        }))
-        super().__init__(*args, **kwargs)
-
-    def clean(self, data, initial=None):
-        single_file_clean = super().clean
-        if isinstance(data, (list, tuple)):
-            return [single_file_clean(d, initial) for d in data]
-        return single_file_clean(data, initial)
 
 class ReviewForm(forms.ModelForm):
     images = MultipleFileField(label='Attach images', required=False)

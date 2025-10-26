@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Tag, UserProfile, Post, Rating, Collection, Review, ReviewImage, ReviewLike
+from .models import Tag, UserProfile, Post, Rating, Collection, Review, ReviewImage, ReviewLike, PostImage
 
 # Admin for Tag
 @admin.register(Tag)
@@ -25,16 +25,35 @@ class UserProfileAdmin(admin.ModelAdmin):
         return obj.tags.count()
     tag_count.short_description = 'Tags Count'
 
-# Admin for Post
+class PostImageInline(admin.TabularInline):
+    model = PostImage
+    extra = 3 
+    max_num = 10 
+    fields = ['image', 'image_preview']
+    readonly_fields = ['image_preview']
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return f'<img src="{obj.image.url}" style="width: 100px; height: 100px; object-fit: cover;" />'
+        return "No image"
+    image_preview.short_description = 'Preview'
+    image_preview.allow_tags = True
+
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'user', 'category', 'created_at', 'updated_at', 'rating', 'review_count', 'tag_list')
+    list_display = ('title', 'user', 'category', 'created_at', 'updated_at', 'rating', 'review_count', 'tag_list', 'total_images_count')
     search_fields = ('title', 'user__username', 'category', 'content')
     list_filter = ('category', 'created_at', 'updated_at', 'tags')
     ordering = ('-created_at',)
     filter_horizontal = ('tags',)
     list_editable = ('rating',)
     readonly_fields = ('created_at', 'updated_at')
+    inlines = [PostImageInline]
+    
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields['image'].label = 'Thumbnail Image'
+        return form
     
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related('tags')
@@ -46,6 +65,16 @@ class PostAdmin(admin.ModelAdmin):
     def review_count(self, obj):
         return obj.reviews.count()
     review_count.short_description = 'Reviews'
+    
+    def total_images_count(self, obj):
+        try:
+            count = obj.images.count()
+            if obj.image:  
+                count += 1
+            return count
+        except AttributeError:
+            return 1 if obj.image else 0
+    total_images_count.short_description = 'Total Images'
 
 # Admin for Rating
 @admin.register(Rating)
@@ -69,7 +98,20 @@ class CollectionAdmin(admin.ModelAdmin):
         return obj.posts.count()
     post_count.short_description = 'Posts Count'
 
-# Admin for Review
+# Inline for Review Images
+class ReviewImageInlineAdmin(admin.TabularInline):
+    model = ReviewImage
+    extra = 1
+    readonly_fields = ('image_preview',)
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return f'<img src="{obj.image.url}" style="max-height: 50px; max-width: 50px;" />'
+        return "No image"
+    image_preview.allow_tags = True
+    image_preview.short_description = 'Preview'
+
+# Admin for Review - UPDATED WITH INLINE
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
     list_display = ('user', 'post', 'comment_preview', 'likes_count', 'image_count', 'created_at')
@@ -77,6 +119,7 @@ class ReviewAdmin(admin.ModelAdmin):
     list_filter = ('created_at', 'post__category')
     ordering = ('-created_at',)
     readonly_fields = ('created_at', 'likes_count_display')
+    inlines = [ReviewImageInlineAdmin]  # KEEP THIS INLINE
     
     def comment_preview(self, obj):
         return obj.comment[:50] + "..." if len(obj.comment) > 50 else obj.comment
@@ -94,19 +137,7 @@ class ReviewAdmin(admin.ModelAdmin):
         return obj.likes_count
     likes_count_display.short_description = 'Total Likes'
 
-# Admin for ReviewImage
-class ReviewImageInline(admin.TabularInline):
-    model = ReviewImage
-    extra = 1
-    readonly_fields = ('image_preview',)
-    
-    def image_preview(self, obj):
-        if obj.image:
-            return f'<img src="{obj.image.url}" style="max-height: 100px; max-width: 100px;" />'
-        return "No image"
-    image_preview.allow_tags = True
-    image_preview.short_description = 'Preview'
-
+# Standalone Admin for ReviewImage (optional)
 @admin.register(ReviewImage)
 class ReviewImageAdmin(admin.ModelAdmin):
     list_display = ('review', 'image_preview', 'created_at')
@@ -143,22 +174,16 @@ class ReviewLikeAdmin(admin.ModelAdmin):
         return f"{obj.review.user.username} on '{obj.review.post.title}': {comment}"
     review_preview.short_description = 'Review'
 
-# Optional: Add ReviewImage as inline to Review admin
-class ReviewImageInlineAdmin(admin.TabularInline):
-    model = ReviewImage
-    extra = 1
-    readonly_fields = ('image_preview',)
+# Standalone Admin for PostImage (optional - for direct management)
+@admin.register(PostImage)
+class PostImageAdmin(admin.ModelAdmin):
+    list_display = ['post', 'image_preview', 'created_at']
+    list_filter = ['created_at', 'post']  # Fixed the filter
+    readonly_fields = ['image_preview', 'created_at']
     
     def image_preview(self, obj):
         if obj.image:
-            return f'<img src="{obj.image.url}" style="max-height: 50px; max-width: 50px;" />'
-        return "No image"
-    image_preview.allow_tags = True
+            return f'<img src="{obj.image.url}" style="width: 50px; height: 50px; object-fit: cover;" />'
+        return "No Image"
     image_preview.short_description = 'Preview'
-
-# Re-register Review with inline
-admin.site.unregister(Review)
-@admin.register(Review)
-class ReviewWithInlineAdmin(ReviewAdmin):
-    inlines = [ReviewImageInlineAdmin]
-    
+    image_preview.allow_tags = True

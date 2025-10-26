@@ -6,383 +6,63 @@
 {% load static%}
 {% load custom_filters %}
 
-<style>
-
-.star-rating span {
-    font-size: 20px;
-}
-.panel-body {
-    padding: 25px 20px;
-    box-shadow: #555 0 2px 4px 0;
-}
-
-
-.media-block .media-left {
-    display: block;
-    float: left
-}
-
-.media-block .media-right {
-    float: right
-}
-
-.media-block .media-body {
-    display: block;
-    overflow: hidden;
-    width: auto
-}
-
-.middle .media-left,
-.middle .media-right,
-.middle .media-body {
-    vertical-align: middle
-}
-
-.thumbnail {
-    border-radius: 0;
-    border-color: #e9e9e9
-}
-
-.tag.tag-sm, .btn-group-sm>.tag {
-    padding: 5px 10px;
-}
-
-.tag:not(.label) {
-    background-color: #fff;
-    padding: 6px 12px;
-    border-radius: 2px;
-    border: 1px solid #cdd6e1;
-    font-size: 12px;
-    line-height: 1.42857;
-    vertical-align: middle;
-    -webkit-transition: all .15s;
-    transition: all .15s;
-}
-.text-muted, a.text-muted:hover, a.text-muted:focus {
-    color: #acacac;
-}
-.text-sm {
-    font-size: 0.9em;
-}
-.text-5x, .text-4x, .text-5x, .text-2x, .text-lg, .text-sm, .text-xs {
-    line-height: 1.25;
-}
-
-.btn-trans {
-    background-color: transparent;
-    border-color: transparent;
-    color: #929292;
-}
-
-.btn-icon {
-    padding-left: 9px;
-    padding-right: 9px;
-}
-
-.btn-sm, .btn-group-sm>.btn, .btn-icon.btn-sm {
-    padding: 5px 10px !important;
-}
-
-.mar-top {
-    margin-top: 15px;
-}
-   /* Container for all reviews */
-.card.comments-card {
-    background: #d6d6d6ff;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    padding: 20px;
-    margin-bottom: 30px;
-}
-
-/* Title */
-.card.comments-card .title {
-    font-weight: 600;
-    font-size: 1.2rem;
-    margin-bottom: 15px;
-    display: block;
-}
-
-/* Single comment container */
-.comment-container {
-    background: #f8f9fa;
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 12px;
-    position: relative;
-}
-
-/* User info */
-.user {
-    display: flex;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.user-pic {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    overflow: hidden;
-    margin-right: 10px;
-}
-
-.user-info span {
-    font-weight: 600;
-    display: block;
-}
-
-.user-info p {
-    font-size: 0.8rem;
-    color: #707277;
-    margin: 0;
-}
-
-/* Comment text */
-.comment-content {
-    font-size: 0.95rem;
-    line-height: 1.4;
-    margin-bottom: 8px;
-}
-
-/* Images in comment */
-.comment-container img {
-    border-radius: 8px;
-    max-width: 100px;
-    margin-right: 8px;
-    margin-bottom: 8px;
-    object-fit: cover;
-}
-
-/* Reaction bar */
-.comment-react {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.comment-react button {
-    background: #f0f2f5;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-}
-
-.comment-react button:hover {
-    background: #e4e6eb;
-}
-
-/* Reply box */
-.text-box {
-    display: flex;
-    align-items: center;
-    margin-top: 10px;
-}
-
-.text-box textarea {
-    width: 100%;
-    border-radius: 20px;
-    border: 1px solid #ccc;
-    padding: 8px 12px;
-    resize: none;
-    font-size: 14px;
-    outline: none;
-    margin-right: 8px;
-}
-
-.text-box textarea:focus {
-    border-color: #1877f2;
-}
-
-/* Send button inside reply */
-.text-box .send {
-    background-color: #1877f2;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
-
-.text-box .send:hover {
-    background-color: #155db2;
-}
-   .review-container {
-    width: 500px;
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-.facebook-comment-form textarea {
-    width: 100%;
-    border-radius: 20px;
-    border: 1px solid #ccc;
-    padding: 12px 16px;
-    resize: none;
-    font-size: 14px;
-    font-family: inherit;
-    outline: none;
-    transition: border-color 0.2s;
-}
-
-.facebook-comment-form textarea:focus {
-    border-color: #1877f2; /* Facebook blue */
-}
-
-.attachments {
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
-}
-
-.attach-btn {
-    display: inline-block;
-    padding: 8px 12px;
-    border-radius: 20px;
-    background: #f0f2f5;
-    cursor: pointer;
-    font-weight: 500;
-    color: #1877f2;
-    position: relative;
-}
-
-.attach-btn input[type="file"] {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    cursor: pointer;
-}
-
-.selected-files {
-    margin-top: 5px;
-    font-size: 13px;
-    color: #555;
-}
-
-.btn-submit {
-    margin-top: 10px;
-    background-color: #1877f2;
-    color: white;
-    border: none;
-    border-radius: 20px;
-    padding: 8px 16px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background 0.2s;
-}
-
-.btn-submit:hover {
-    background-color: #155db2;
-}
-.star-rating span { 
-    font-size: 2rem;
-    cursor: pointer;
-    color: lightgray;
-    transition: color 0.2s;
-}
-
-.star-rating span.hover,
-.star-rating span.selected {
-    color: gold;
-}
- .review-container {
-      background: white;
-      margin-top: 60px;
-      padding: 30px;
-      width: 500px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #333;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 120px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 10px;
-      resize: vertical;
-      font-size: 15px;
-      font-family: inherit;
-    }
-
-    .file-upload-wrapper {
-      position: relative;
-      margin-top: 20px;
-      padding: 20px;
-      border: 2px dashed #aaa;
-      border-radius: 8px;
-      text-align: center;
-      background: #fdfdfd;
-      transition: border 0.3s ease, background 0.3s ease;
-    }
-
-    .file-upload-wrapper:hover {
-      border-color: #007bff;
-      background: #f0f8ff;
-    }
-
-    .file-upload-wrapper input[type="file"] {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      cursor: pointer;
-    }
-
-    .upload-label {
-      font-weight: 500;
-      color: #007bff;
-      pointer-events: none;
-    }
-
-    .selected-files {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #555;
-      text-align: left;
-    }
-
-    .preview-images {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .preview-images img {
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-    }
-
-</style>
 <section class="d-flex justify-content-center align-items-start" style="padding-top: 50px; padding-bottom: 10px; background-color: #f8f9fa;">
     <div style="max-width: 800px; width: 100%;">
-        {% if post.image %}
-        <img src="{{ post.image.url }}" alt="{{ post.title }}" class="w-100 rounded" style="object-fit: cover; height: 300px;">
+        <div class='p-4'>
+            {% if post.image %}
+            <img src="{{ post.image.url }}" alt="{{ post.title }}" class="w-100 rounded" style="object-fit: cover; height: 300px;">
+        {% endif %}<br><br>
+        {% if post.images.all %}
+        <div class="smart-gallery-section mb-5">
+            <h5 class="mb-3">Gallery ({{ post.images.count }} images)</h5>
+            
+            <!-- Main Carousel -->
+            <div id="smartCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner rounded-3">
+                    {% for post_image in post.images.all %}
+                    <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                        <!-- ADD THIS CONTAINER DIV -->
+                        <div class="image-container d-flex align-items-center justify-content-center" style="height: 500px;">
+                            <img src="{{ post_image.image.url }}" 
+                                class="smart-image" 
+                                alt="Image {{ forloop.counter }}"
+                                onload="checkImageOrientation(this)">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- FIXED: Changed data-bs-target to smartCarousel -->
+                <button class="carousel-control-prev" type="button" data-bs-target="#smartCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon bg-dark rounded-circle p-3"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#smartCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon bg-dark rounded-circle p-3"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+
+            <!-- Thumbnail Navigation -->
+            <!-- FIXED: Changed data-bs-target to smartCarousel -->
+            <div class="thumbnail-nav mt-3">
+                <div class="row g-2">
+                    {% for post_image in post.images.all %}
+                    <div class="col-3 col-sm-2">
+                        <img src="{{ post_image.image.url }}" 
+                            class="thumbnail-img {% if forloop.first %}active{% endif %} rounded" 
+                            data-bs-target="#smartCarousel" 
+                            data-bs-slide-to="{{ forloop.counter0 }}"
+                            alt="Thumb {{ forloop.counter }}">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
         {% endif %}
+
+        </div>
+
 
         <div class="p-4">
         <h2 class="fw-bold text-center">{{ post.title }}</h2>
@@ -411,10 +91,110 @@
             </div>
         {%endif%}
         </div>
+         
+       <div class="row">
+            <div class="col">
+                <div class="text-center mt-4">
+                    <!-- Rating Summary Section -->
+                    <div class="rating-summary mb-4">
+                        <div class="row align-items-center">
+                            <!-- Average Rating -->
+                            <div class="col-md-4 text-center">
+                                <div class="average-rating">
+                                    <h1 class="display-4 fw-bold text-primary mb-1">{{ average_rating|default:"0"|floatformat:1 }}</h1>
+                                    <div class="stars mb-5" style="color: #ffc107;">
+                                        {% with ''|center:5 as range %}
+                                        {% for i in range %}
+                                            {% if forloop.counter <= average_rating %}
+                                                <span class="star filled">★</span>
+                                            {% else %}
+                                                <span class="star">★</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% endwith %}
+                                    </div>
+                                    <p class="text-muted small mb-0">{{ rating_count }} Review{{ rating_count|pluralize }}</p>
+                                </div>
+                            </div>
+                    
+                            <!-- Rating Distribution Bars -->
+                            <div class="col-md-8">
+                                <div class="rating-bars">
+                                    {% for item in rating_distribution %}
+                                    <div class="rating-bar-item d-flex align-items-center mb-2">
+                                        <span class="me-2" style="min-width: 20px;">{{ item.stars }}</span>
+                                        <span class="star small me-2">★</span>
+                                        <div class="progress flex-grow-1 me-2" style="height: 8px; margin-bottom: .1rem;">
+                                            <div class="progress-bar" role="progressbar"
+                                                style="width: {{ item.percentage }}%" 
+                                                aria-valuenow="{{ item.percentage }}" 
+                                                aria-valuemin="0" 
+                                                aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <span class="text-muted small" style="min-width: 40px;">{{ item.percentage }}%</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+            </div>
+            <div class="col">
+                <div class="p-4 bg-light rounded-3">
+                    {% if fuel_prices %}
+                    <div class="fuel-prices-card mb-4 text-center">
+                        <div class="card-header text-dark" style="background-color: #07e2ffff;">
+                            <h5 class="mb-0">⛽ Current Fuel Prices (Philippines)</h5>
+                        </div><br>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-4 mb-3">
+                                    <div class="fuel-item p-2 border rounded bg-primary">
+                                        <h6 class="text-white mb-2">Gasoline</h6>
+                                        <h5 class="text-white mb-1">₱{{ fuel_prices.gasoline }}</h5>
+                                        <small class="text-muted">Per liter</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="fuel-item p-2 border rounded bg-success">
+                                        <h6 class="text-white mb-2">Diesel</h6>
+                                        <h5 class="text-white mb-1">₱{{ fuel_prices.diesel }}</h5>
+                                        <small class="text-muted">Per liter</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="fuel-item p-2 border rounded bg-warning text-center">
+                                        <h6 class="text-white mb-2">Kerosene</h6>
+                                        <h5 class="text-white mb-1">₱{{ fuel_prices.kerosene }}</h5>
+                                        <small class="text-muted">Per liter</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center mt-2">
+                                <small class="text-muted">
+                                    {{ fuel_prices.region|default:"National Average" }} | 
+                                    Source: {{ fuel_prices.source|default:"DOE Philippines" }} | 
+                                    Updated: {{ fuel_prices.last_updated|default:"Recent" }}
+                                </small>
+                            </div><br>
+                            {% if post.estimated_price %}
+                            <p class="fw-semibold text-center">
+                                Estimated Commute Travel Price: <span class="text-success">₱{{ post.estimated_price }}</span>
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
 
-        <!-- ⭐ Rating Section -->
-        <div class="text-center mt-4">
-        {% if user.is_authenticated %}
+            </div>
+        </div>
+        <div class="p-4">
+            <!-- Fuel Prices Section -->
+            {% if user.is_authenticated %}
             <form id="ratingForm">
                 {% csrf_token %}
                 <div id="starRating" class="star-rating mb-2">
@@ -426,8 +206,7 @@
                 </div>
                 <h5 id="outputText" class="mb-2">Your Rating: {{ user_rating }}/5</h5>
             </form>
-        {% else %}
-            <!-- For guests: show stars but disabled -->
+            {% else %}
             <div id="starRating" class="star-rating mb-2 text-muted" style="pointer-events: none;">
                 <span>★</span>
                 <span>★</span>
@@ -438,248 +217,159 @@
             <p class="text-muted small mb-2">
                 <a href="{% url 'login' %}?next={{ request.path }}">Log in</a> to rate this post.
             </p>
-        {% endif %}
-
-        <!-- Rating Summary Section -->
-        <div class="rating-summary mb-4">
-            <div class="row align-items-center">
-                <!-- Average Rating -->
-                <div class="col-md-4 text-center">
-                    <div class="average-rating">
-                        <h1 class="display-4 fw-bold text-primary mb-1">{{ average_rating|default:"0"|floatformat:1 }}</h1>
-                        <div class="stars mb-2">
-                            {% with ''|center:5 as range %}
-                            {% for i in range %}
-                                {% if forloop.counter <= average_rating %}
-                                    <span class="star filled">★</span>
-                                {% else %}
-                                    <span class="star">★</span>
-                                {% endif %}
-                            {% endfor %}
-                            {% endwith %}
-                        </div>
-                        <p class="text-muted small mb-0">{{ rating_count }} Review{{ rating_count|pluralize }}</p>
-                    </div>
-                </div>
-        
-                <!-- Rating Distribution Bars -->
-                <div class="col-md-8">
-                    <div class="rating-bars">
-                        {% for item in rating_distribution %}
-                        <div class="rating-bar-item d-flex align-items-center mb-2">
-                            <span class="me-2" style="min-width: 20px;">{{ item.stars }}</span>
-                            <span class="star small me-2">★</span>
-                            <div class="progress flex-grow-1 me-2" style="height: 8px; margin-top:1.4rem;">
-                                <div class="progress-bar" role="progressbar"
-                                    style="width: {{ item.percentage }}%" 
-                                    aria-valuenow="{{ item.percentage }}" 
-                                    aria-valuemin="0" 
-                                    aria-valuemax="100">
-                                </div>
-                            </div>
-                            <span class="text-muted small" style="min-width: 40px;">{{ item.percentage }}%</span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Fuel Prices Section -->
-    {% if fuel_prices %}
-    <div class="fuel-prices-card mb-4">
-        <div class="card-header bg-warning text-dark">
-            <h5 class="mb-0">⛽ Current Fuel Prices (Philippines)</h5>
-        </div>
-        <div class="card-body">
-            <div class="row text-center">
-                <div class="col-md-4 mb-3">
-                    <div class="fuel-item p-3 border rounded bg-light">
-                        <h6 class="text-primary mb-2">Gasoline</h6>
-                        <h3 class="text-primary mb-1">₱{{ fuel_prices.gasoline }}</h3>
-                        <small class="text-muted">Per liter</small>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <div class="fuel-item p-3 border rounded bg-light">
-                        <h6 class="text-success mb-2">Diesel</h6>
-                        <h3 class="text-success mb-1">₱{{ fuel_prices.diesel }}</h3>
-                        <small class="text-muted">Per liter</small>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <div class="fuel-item p-3 border rounded bg-light">
-                        <h6 class="text-warning mb-2">Kerosene</h6>
-                        <h3 class="text-warning mb-1">₱{{ fuel_prices.kerosene }}</h3>
-                        <small class="text-muted">Per liter</small>
-                    </div>
-                </div>
-            </div>
-            <div class="text-center mt-2">
-                <small class="text-muted">
-                    {{ fuel_prices.region|default:"National Average" }} | 
-                    Source: {{ fuel_prices.source|default:"DOE Philippines" }} | 
-                    Updated: {{ fuel_prices.last_updated|default:"Recent" }}
-                </small>
-            </div><br>
-             {% if post.estimated_price %}
-            <p class="fw-semibold text-center">
-                Estimated Commute Travel Price: <span class="text-success">₱{{ post.estimated_price }}</span>
-            </p>
             {% endif %}
         </div>
-    </div>
-{% endif %}
 
 
         <!-- 📝 Review Form -->
-    <div class="p-4 mb-5 shadow-sm">
-        <h5 class="text-center mb-3">Leave a Review</h5>
-        <div class="d-flex justify-content-between mb-3">
-    <!-- Filter -->
-            <div>
-                <label>Filter by:</label>
-                <select id="filterBy" class="form-select">
-                    <option value="all" {{ filter_by|is_selected:"all" }}>All</option>
-                    <option value="with_photos" {{ filter_by|is_selected:"with_photos" }}>With Photos</option>
-                </select>
-            </div>
+        <div class="p-3 mb-5 shadow-sm">
+            <h5 class="text-center mb-3">Leave a Review</h5>
+            <div class="d-flex justify-content-between mb-3">
+        <!-- Filter -->
+                <div>
+                    <label>Filter by:</label>
+                    <select id="filterBy" class="form-select">
+                        <option value="all" {{ filter_by|is_selected:"all" }}>All</option>
+                        <option value="with_photos" {{ filter_by|is_selected:"with_photos" }}>With Photos</option>
+                    </select>
+                </div>
 
-            <!-- Sort -->
-            <div>
-                <label>Sort by:</label>
-                <select id="sortBy" class="form-select">
-                    <option value="new" {{ sort_by|is_selected:"new" }}>Newest</option>
-                    <option value="highest_rating" {{ sort_by|is_selected:"highest_rating" }}>Highest Rating</option>
-                    <option value="lowest_rating" {{ sort_by|is_selected:"lowest_rating" }}>Lowest Rating</option>
-                    <option value="most_likes" {{ sort_by|is_selected:"most_likes" }}>Most Likes</option>
-                    <option value="least_likes" {{ sort_by|is_selected:"least_likes" }}>Least Likes</option>
-                </select>
-            </div>
-        </div>
-        {% if user.is_authenticated %}
-        <form method="post" enctype="multipart/form-data" class="review-form" action="{% url 'add_review' post.id %}">
-            {% csrf_token %}
-            <div class="panel">
-                <div class="panel-body">
-                    <!-- Comment textarea -->
-                    <div class="form-group mb-2">
-                        {{ review_form.comment }}
-                        {% if review_form.comment.errors %}
-                            <div class="text-danger small">{{ review_form.comment.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Hidden file input -->
-                    <div class="form-group mb-2 d-none">
-                        {{ review_form.images }}
-                        {% if review_form.images.errors %}
-                            <div class="text-danger small">{{ review_form.images.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Buttons: attach + submit -->
-                    <div class="mar-top clearfix">
-                        <button class="btn btn-sm btn-primary pull-right" type="submit">
-                            <i class="fa fa-pencil fa-fw"></i> Share
-                        </button>
-                        <a href="#" id="attachBtn" class="btn btn-trans btn-icon bi bi-paperclip add-tooltip"
-                        title="Attach images"></a>
-                    </div>
-
-                    <!-- Optional: preview filenames -->
-                    <div id="filePreview" class="mt-2 small text-muted"></div>
+                <!-- Sort -->
+                <div>
+                    <label>Sort by:</label>
+                    <select id="sortBy" class="form-select">
+                        <option value="new" {{ sort_by|is_selected:"new" }}>Newest</option>
+                        <option value="highest_rating" {{ sort_by|is_selected:"highest_rating" }}>Highest Rating</option>
+                        <option value="lowest_rating" {{ sort_by|is_selected:"lowest_rating" }}>Lowest Rating</option>
+                        <option value="most_likes" {{ sort_by|is_selected:"most_likes" }}>Most Likes</option>
+                        <option value="least_likes" {{ sort_by|is_selected:"least_likes" }}>Least Likes</option>
+                    </select>
                 </div>
             </div>
-        </form>
+            {% if user.is_authenticated %}
+            <form method="post" enctype="multipart/form-data" class="review-form" action="{% url 'add_review' post.id %}">
+                {% csrf_token %}
+                <div class="panel">
+                    <div class="panel-body">
+                        <!-- Comment textarea -->
+                        <div class="form-group mb-2">
+                            {{ review_form.comment }}
+                            {% if review_form.comment.errors %}
+                                <div class="text-danger small">{{ review_form.comment.errors }}</div>
+                            {% endif %}
+                        </div>
 
-        {% else %}
-        <!-- If not logged in -->
-        <div class="alert alert-light border mt-3 text-center">
-            <p class="mb-2">You must be <a href="{% url 'login' %}?next={{ request.path }}">logged in</a> to post a review.</p>
-            <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary btn-sm">Log In</a>
-            <a href="{% url 'register' %}" class="btn btn-outline-secondary btn-sm">Sign Up</a>
-        </div>
-        {% endif %}
-        <div class="panel">
-            <div class="panel-body">
-                <div class="p-3">
-                    <h5 class="mt-4">Reviews</h5>
+                        <!-- Hidden file input -->
+                        <div class="form-group mb-2 d-none">
+                            {{ review_form.images }}
+                            {% if review_form.images.errors %}
+                                <div class="text-danger small">{{ review_form.images.errors }}</div>
+                            {% endif %}
+                        </div>
 
-                    <div class="review-list">
-                    {% for review in reviews %}
-                        <div class="review-card d-flex align-items-start mb-3 p-3 border rounded">
-
-                        <!-- Heart / Like -->
-                        <div class="me-3 text-center">
-                            <button class="like-btn" onclick="toggleLike({{ review.id }})" style="background:none; border:none; cursor:pointer;">
-                            <span id="heart-{{ review.id }}">
-                                {% if review.id in user_liked_review_ids %}
-                                ❤️
-                                {% else %}
-                                🤍
-                                {% endif %}
-                            </span>
+                        <!-- Buttons: attach + submit -->
+                        <div class="mar-top clearfix">
+                            <button class="btn btn-sm btn-primary pull-right" type="submit">
+                                <i class="fa fa-pencil fa-fw"></i> Share
                             </button>
-                            <div id="like-count-{{ review.id }}">{{ review.likes_count }}</div>
+                            <a href="#" id="attachBtn" class="btn btn-trans btn-icon bi bi-paperclip add-tooltip"
+                            title="Attach images"></a>
                         </div>
 
-                        <!-- User info + comment -->
-                        <div>
-                            <div class="d-flex align-items-center mb-1">
-                            <!-- Profile image -->
-                            {% if review.user.userprofile.profile_image %}
-                                <img src="{{ review.user.userprofile.profile_image.url }}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
-                            {% else %}
-                                <img src="{% static 'images/default.png' %}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
-                            {% endif %}
+                        <!-- Optional: preview filenames -->
+                        <div id="filePreview" class="mt-2 small text-muted"></div>
+                    </div>
+                </div>
+            </form>
 
+            {% else %}
+            <!-- If not logged in -->
+            <div class="alert alert-light border mt-3 text-center">
+                <p class="mb-2">You must be <a href="{% url 'login' %}?next={{ request.path }}">logged in</a> to post a review.</p>
+                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary btn-sm">Log In</a>
+                <a href="{% url 'register' %}" class="btn btn-outline-secondary btn-sm">Sign Up</a>
+            </div>
+            {% endif %}
+            <br>
+            <div class="panel">
+                <div class="panel-body">
+                    <div class="p-3">
+                        <h5 class="mt-4">Reviews</h5>
+
+                        <div class="review-list">
+                        {% for review in reviews %}
+                            <div class="review-card d-flex align-items-start mb-3 p-3 border rounded">
+
+                            <!-- Heart / Like -->
+                                <div class="me-3 text-center">
+                                    <button class="like-btn" onclick="toggleLike({{ review.id }})" style="background:none; border:none; cursor:pointer;">
+                                    <span id="heart-{{ review.id }}">
+                                        {% if review.id in user_liked_review_ids %}
+                                        ❤️
+                                        {% else %}
+                                        🤍
+                                        {% endif %}
+                                    </span>
+                                    </button>
+                                <div id="like-count-{{ review.id }}">{{ review.likes_count }}</div>
+                            </div>
+
+                            <!-- User info + comment -->
                             <div>
-                                <strong>{{ review.user.username }}</strong><br>
-                                <small class="text-muted">{{ review.created_at|date:"l, F jS \a\\t g:i a" }}</small>
-                            </div>
-                            </div>
-                            <!-- Rating stars -->
-                            {% if review.rating_value %}
-                            <div class="star-rating mb-2">
-                                {% for i in "12345" %}
-                                    {% if forloop.counter <= review.rating_value %}
-                                        <span class="text-warning">★</span>
-                                    {% else %}
-                                        <span class="text-secondary">★</span>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
+                                <div class="d-flex align-items-center mb-1">
+                                <!-- Profile image -->
+                                {% if review.user.userprofile.profile_image %}
+                                    <img src="{{ review.user.userprofile.profile_image.url }}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
+                                {% else %}
+                                    <img src="{% static 'images/default.png' %}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
+                                {% endif %}
 
-                            <p style="margin-left: 50px;">{{ review.comment }}</p>
+                                    <div>
+                                        <strong>{{ review.user.username }}</strong><br>
+                                        <small class="text-muted">{{ review.created_at|date:"l, F jS \a\\t g:i a" }}</small>
+                                    </div>
+                                </div>
+                                <!-- Rating stars -->
+                                {% if review.rating_value %}
+                                <div class="star-rating mb-2">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= review.rating_value %}
+                                            <span class="text-warning">★</span>
+                                        {% else %}
+                                            <span class="text-secondary">★</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
 
-                            {% if review.images.all %}
-                            <div class="d-flex flex-wrap" style="margin-left:50px;">
-                                {% for media in review.images.all %}
-                                    {% if media.image %}
-                                        {% with file_url=media.image.url %}
-                                            {% if file_url|is_media:"video" %}
-                                                <video controls class="me-2 mb-2" style="max-width:200px; border-radius:8px;">
-                                                    <source src="{{ file_url }}">
-                                                </video>
-                                            {% elif file_url|is_media:"audio" %}
-                                                <audio controls class="me-2 mb-2" style="width:200px;">
-                                                    <source src="{{ file_url }}">
-                                                </audio>
-                                            {% elif file_url|is_media:"image" %}
-                                                <img src="{{ file_url }}" class="me-2 mb-2" style="max-width:120px; border-radius:8px;">
-                                            {% else %}
-                                                <a href="{{ file_url }}" target="_blank" class="me-2 mb-2 d-block">
-                                                    <i class="bi bi-file-earmark-text"></i> Download File
-                                                </a>
-                                            {% endif %}
-                                        {% endwith %}
-                                    {% endif %}
-                                {% endfor %}
+                                <p style="margin-left: 50px;">{{ review.comment }}</p>
+
+                                {% if review.images.all %}
+                                <div class="d-flex flex-wrap" style="margin-left:50px;">
+                                    {% for media in review.images.all %}
+                                        {% if media.image %}
+                                            {% with file_url=media.image.url %}
+                                                {% if file_url|is_media:"video" %}
+                                                    <video controls class="me-2 mb-2" style="max-width:200px; border-radius:8px;">
+                                                        <source src="{{ file_url }}">
+                                                    </video>
+                                                {% elif file_url|is_media:"audio" %}
+                                                    <audio controls class="me-2 mb-2" style="width:200px;">
+                                                        <source src="{{ file_url }}">
+                                                    </audio>
+                                                {% elif file_url|is_media:"image" %}
+                                                    <img src="{{ file_url }}" class="me-2 mb-2" style="max-width:120px; border-radius:8px;">
+                                                {% else %}
+                                                    <a href="{{ file_url }}" target="_blank" class="me-2 mb-2 d-block">
+                                                        <i class="bi bi-file-earmark-text"></i> Download File
+                                                    </a>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                             </div>
-                            {% endif %}
-                        </div>
                         </div>
                     {% empty %}
                         <p>No reviews yet. Be the first to comment!</p>
@@ -689,8 +379,57 @@
             </div>
         </div>
     </div>
+    
 
 <script>
+
+    function checkImageOrientation(img) {
+        // Check if image is portrait or landscape
+        if (img.naturalHeight > img.naturalWidth) {
+            img.classList.add('portrait');
+            img.classList.remove('landscape');
+        } else {
+            img.classList.add('landscape');
+            img.classList.remove('portrait');
+        }
+    }
+
+    // Update active thumbnail when carousel slides
+    document.addEventListener('DOMContentLoaded', function() {
+        const carousel = document.getElementById('smartCarousel'); // FIXED: smartCarousel
+        const thumbnails = document.querySelectorAll('.thumbnail-img');
+        
+        if (carousel) {
+            carousel.addEventListener('slid.bs.carousel', function (e) {
+                // Remove active class from all thumbnails
+                thumbnails.forEach(thumb => thumb.classList.remove('active'));
+                
+                // Add active class to current thumbnail
+                const activeIndex = e.to;
+                thumbnails[activeIndex].classList.add('active');
+            });
+        }
+        
+        thumbnails.forEach((thumb, index) => {
+            thumb.addEventListener('click', function() {
+                const carousel = new bootstrap.Carousel('#smartCarousel');
+                carousel.to(index);
+            });
+        });
+    });
+
+    document.addEventListener('keydown', function(e) {
+        const carousel = document.getElementById('smartCarousel');
+        if (carousel) {
+            if (e.key === 'ArrowLeft') {
+                const carouselInstance = new bootstrap.Carousel('#smartCarousel');
+                carouselInstance.prev();
+            } else if (e.key === 'ArrowRight') {
+                const carouselInstance = new bootstrap.Carousel('#smartCarousel');
+                carouselInstance.next();
+            }
+        }
+    });
     document.getElementById('filterBy').addEventListener('change', function() {
         const params = new URLSearchParams(window.location.search);
         params.set('filter', this.value);
