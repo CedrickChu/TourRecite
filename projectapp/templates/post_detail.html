@@ -388,33 +388,28 @@
         <h2 class="fw-bold text-center">{{ post.title }}</h2>
         <p class="text-muted mb-2 small text-center">
             Category: <span class="fw-medium">{{ post.get_category_display }}</span> |
-            Posted on {{ post.created_at|date:"M j, Y" }}
+            Added on {{ post.created_at|date:"M j, Y" }}
         </p>
 
         <p class="text-center">{{ post.content }}</p>
 
-        {% if post.estimated_price %}
-        <p class="fw-semibold text-center">
-            Estimated Price: <span class="text-success">₱{{ post.estimated_price }}</span>
-        </p>
-        {% endif %}
-
         <div id="map" class="rounded-3 my-3" style="height: 300px;"></div>
-
-        <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
-            <span onclick="toggleCollection({{ post.id }}, this)" style="cursor:pointer;">
-            {% if is_saved %}
-            <svg class="saved-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24">
-                <path fill="#000" d="M7.5 3.75a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-14a2 2 0 0 0-2-2z"/>
-            </svg>
-            {% else %}
-            <svg class="unsaved-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24">
-                <path fill="#000" d="M17.5 1.25a.5.5 0 0 1 1 0v2.5H21a.5.5 0 0 1 0 1h-2.5v2.5a.5.5 0 0 1-1 0v-2.5H15a.5.5 0 0 1 0-1h2.5zm-11 4.5a1 1 0 0 1 1-1H11a.5.5 0 0 0 0-1H7.5a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-8.5a.5.5 0 0 0-1 0v7.48l-5.2-4a.5.5 0 0 0-.6 0l-5.2 4z"/>
-            </svg>
-            {% endif %}
-            </span>
-            <span class="text-muted small">Click to save/remove</span>
-        </div>
+        {% if user.is_authenticated %}
+            <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
+                <span onclick="toggleCollection({{ post.id }}, this)" style="cursor:pointer;">
+                {% if is_saved %}
+                <svg class="saved-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24">
+                    <path fill="#000" d="M7.5 3.75a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-14a2 2 0 0 0-2-2z"/>
+                </svg>
+                {% else %}
+                <svg class="unsaved-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24">
+                    <path fill="#000" d="M17.5 1.25a.5.5 0 0 1 1 0v2.5H21a.5.5 0 0 1 0 1h-2.5v2.5a.5.5 0 0 1-1 0v-2.5H15a.5.5 0 0 1 0-1h2.5zm-11 4.5a1 1 0 0 1 1-1H11a.5.5 0 0 0 0-1H7.5a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-8.5a.5.5 0 0 0-1 0v7.48l-5.2-4a.5.5 0 0 0-.6 0l-5.2 4z"/>
+                </svg>
+                {% endif %}
+                </span>
+                <span class="text-muted small">Click to save/remove</span>
+            </div>
+        {%endif%}
         </div>
 
         <!-- ⭐ Rating Section -->
@@ -433,7 +428,7 @@
             </form>
         {% else %}
             <!-- For guests: show stars but disabled -->
-            <div id="starRating" class="star-rating mb-2 text-muted" style="pointer-events: none; opacity: 0.5;">
+            <div id="starRating" class="star-rating mb-2 text-muted" style="pointer-events: none;">
                 <span>★</span>
                 <span>★</span>
                 <span>★</span>
@@ -445,174 +440,253 @@
             </p>
         {% endif %}
 
-        <div class="post mb-4">
-            {% if average_rating %}
-                <p id="average-rating">
-                    Average Rating: {{ average_rating|floatformat:1 }} / 5 
-                    ({{ rating_count }} Review{{ rating_count|pluralize }})
-                </p>
-            {% else %}
-                <p id="average-rating">No ratings yet.</p>
+        <!-- Rating Summary Section -->
+        <div class="rating-summary mb-4">
+            <div class="row align-items-center">
+                <!-- Average Rating -->
+                <div class="col-md-4 text-center">
+                    <div class="average-rating">
+                        <h1 class="display-4 fw-bold text-primary mb-1">{{ average_rating|default:"0"|floatformat:1 }}</h1>
+                        <div class="stars mb-2">
+                            {% with ''|center:5 as range %}
+                            {% for i in range %}
+                                {% if forloop.counter <= average_rating %}
+                                    <span class="star filled">★</span>
+                                {% else %}
+                                    <span class="star">★</span>
+                                {% endif %}
+                            {% endfor %}
+                            {% endwith %}
+                        </div>
+                        <p class="text-muted small mb-0">{{ rating_count }} Review{{ rating_count|pluralize }}</p>
+                    </div>
+                </div>
+        
+                <!-- Rating Distribution Bars -->
+                <div class="col-md-8">
+                    <div class="rating-bars">
+                        {% for item in rating_distribution %}
+                        <div class="rating-bar-item d-flex align-items-center mb-2">
+                            <span class="me-2" style="min-width: 20px;">{{ item.stars }}</span>
+                            <span class="star small me-2">★</span>
+                            <div class="progress flex-grow-1 me-2" style="height: 8px; margin-top:1.4rem;">
+                                <div class="progress-bar" role="progressbar"
+                                    style="width: {{ item.percentage }}%" 
+                                    aria-valuenow="{{ item.percentage }}" 
+                                    aria-valuemin="0" 
+                                    aria-valuemax="100">
+                                </div>
+                            </div>
+                            <span class="text-muted small" style="min-width: 40px;">{{ item.percentage }}%</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Fuel Prices Section -->
+    {% if fuel_prices %}
+    <div class="fuel-prices-card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">⛽ Current Fuel Prices (Philippines)</h5>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-4 mb-3">
+                    <div class="fuel-item p-3 border rounded bg-light">
+                        <h6 class="text-primary mb-2">Gasoline</h6>
+                        <h3 class="text-primary mb-1">₱{{ fuel_prices.gasoline }}</h3>
+                        <small class="text-muted">Per liter</small>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="fuel-item p-3 border rounded bg-light">
+                        <h6 class="text-success mb-2">Diesel</h6>
+                        <h3 class="text-success mb-1">₱{{ fuel_prices.diesel }}</h3>
+                        <small class="text-muted">Per liter</small>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="fuel-item p-3 border rounded bg-light">
+                        <h6 class="text-warning mb-2">Kerosene</h6>
+                        <h3 class="text-warning mb-1">₱{{ fuel_prices.kerosene }}</h3>
+                        <small class="text-muted">Per liter</small>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-2">
+                <small class="text-muted">
+                    {{ fuel_prices.region|default:"National Average" }} | 
+                    Source: {{ fuel_prices.source|default:"DOE Philippines" }} | 
+                    Updated: {{ fuel_prices.last_updated|default:"Recent" }}
+                </small>
+            </div><br>
+             {% if post.estimated_price %}
+            <p class="fw-semibold text-center">
+                Estimated Commute Travel Price: <span class="text-success">₱{{ post.estimated_price }}</span>
+            </p>
             {% endif %}
         </div>
     </div>
+{% endif %}
 
 
         <!-- 📝 Review Form -->
-        <div class="p-4 mb-5 shadow-sm">
-            <h5 class="text-center mb-3">Leave a Review</h5>
-            <div class="d-flex justify-content-between mb-3">
+    <div class="p-4 mb-5 shadow-sm">
+        <h5 class="text-center mb-3">Leave a Review</h5>
+        <div class="d-flex justify-content-between mb-3">
     <!-- Filter -->
-                <div>
-                    <label>Filter by:</label>
-                    <select id="filterBy" class="form-select">
-                        <option value="all" {{ filter_by|is_selected:"all" }}>All</option>
-                        <option value="with_photos" {{ filter_by|is_selected:"with_photos" }}>With Photos</option>
-                    </select>
-                </div>
-
-                <!-- Sort -->
-                <div>
-                    <label>Sort by:</label>
-                    <select id="sortBy" class="form-select">
-                        <option value="new" {{ sort_by|is_selected:"new" }}>Newest</option>
-                        <option value="highest_rating" {{ sort_by|is_selected:"highest_rating" }}>Highest Rating</option>
-                        <option value="lowest_rating" {{ sort_by|is_selected:"lowest_rating" }}>Lowest Rating</option>
-                        <option value="most_likes" {{ sort_by|is_selected:"most_likes" }}>Most Likes</option>
-                        <option value="least_likes" {{ sort_by|is_selected:"least_likes" }}>Least Likes</option>
-                    </select>
-                </div>
+            <div>
+                <label>Filter by:</label>
+                <select id="filterBy" class="form-select">
+                    <option value="all" {{ filter_by|is_selected:"all" }}>All</option>
+                    <option value="with_photos" {{ filter_by|is_selected:"with_photos" }}>With Photos</option>
+                </select>
             </div>
-            {% if user.is_authenticated %}
-            <form method="post" enctype="multipart/form-data" class="review-form" action="{% url 'add_review' post.id %}">
-                {% csrf_token %}
-                <div class="panel">
-                    <div class="panel-body">
-                        <!-- Comment textarea -->
-                        <div class="form-group mb-2">
-                            {{ review_form.comment }}
-                            {% if review_form.comment.errors %}
-                                <div class="text-danger small">{{ review_form.comment.errors }}</div>
-                            {% endif %}
-                        </div>
 
-                        <!-- Hidden file input -->
-                        <div class="form-group mb-2 d-none">
-                            {{ review_form.images }}
-                            {% if review_form.images.errors %}
-                                <div class="text-danger small">{{ review_form.images.errors }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Buttons: attach + submit -->
-                        <div class="mar-top clearfix">
-                            <button class="btn btn-sm btn-primary pull-right" type="submit">
-                                <i class="fa fa-pencil fa-fw"></i> Share
-                            </button>
-                            <a href="#" id="attachBtn" class="btn btn-trans btn-icon bi bi-paperclip add-tooltip"
-                            title="Attach images"></a>
-                        </div>
-
-                        <!-- Optional: preview filenames -->
-                        <div id="filePreview" class="mt-2 small text-muted"></div>
-                    </div>
-                </div>
-            </form>
-
-            {% else %}
-            <!-- If not logged in -->
-            <div class="alert alert-light border mt-3 text-center">
-                <p class="mb-2">You must be <a href="{% url 'login' %}?next={{ request.path }}">logged in</a> to post a review.</p>
-                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary btn-sm">Log In</a>
-                <a href="{% url 'register' %}" class="btn btn-outline-secondary btn-sm">Sign Up</a>
+            <!-- Sort -->
+            <div>
+                <label>Sort by:</label>
+                <select id="sortBy" class="form-select">
+                    <option value="new" {{ sort_by|is_selected:"new" }}>Newest</option>
+                    <option value="highest_rating" {{ sort_by|is_selected:"highest_rating" }}>Highest Rating</option>
+                    <option value="lowest_rating" {{ sort_by|is_selected:"lowest_rating" }}>Lowest Rating</option>
+                    <option value="most_likes" {{ sort_by|is_selected:"most_likes" }}>Most Likes</option>
+                    <option value="least_likes" {{ sort_by|is_selected:"least_likes" }}>Least Likes</option>
+                </select>
             </div>
-            {% endif %}
+        </div>
+        {% if user.is_authenticated %}
+        <form method="post" enctype="multipart/form-data" class="review-form" action="{% url 'add_review' post.id %}">
+            {% csrf_token %}
             <div class="panel">
                 <div class="panel-body">
-                    <div class="p-3">
-                        <h5 class="mt-4">Reviews</h5>
+                    <!-- Comment textarea -->
+                    <div class="form-group mb-2">
+                        {{ review_form.comment }}
+                        {% if review_form.comment.errors %}
+                            <div class="text-danger small">{{ review_form.comment.errors }}</div>
+                        {% endif %}
+                    </div>
 
-                        <div class="review-list">
-                        {% for review in reviews %}
-                            <div class="review-card d-flex align-items-start mb-3 p-3 border rounded">
+                    <!-- Hidden file input -->
+                    <div class="form-group mb-2 d-none">
+                        {{ review_form.images }}
+                        {% if review_form.images.errors %}
+                            <div class="text-danger small">{{ review_form.images.errors }}</div>
+                        {% endif %}
+                    </div>
 
-                            <!-- Heart / Like -->
-                            <div class="me-3 text-center">
-                                <button class="like-btn" onclick="toggleLike({{ review.id }})" style="background:none; border:none; cursor:pointer;">
-                                <span id="heart-{{ review.id }}">
-                                    {% if review.id in user_liked_review_ids %}
-                                    ❤️
-                                    {% else %}
-                                    🤍
-                                    {% endif %}
-                                </span>
-                                </button>
-                                <div id="like-count-{{ review.id }}">{{ review.likes_count }}</div>
-                            </div>
+                    <!-- Buttons: attach + submit -->
+                    <div class="mar-top clearfix">
+                        <button class="btn btn-sm btn-primary pull-right" type="submit">
+                            <i class="fa fa-pencil fa-fw"></i> Share
+                        </button>
+                        <a href="#" id="attachBtn" class="btn btn-trans btn-icon bi bi-paperclip add-tooltip"
+                        title="Attach images"></a>
+                    </div>
 
-                            <!-- User info + comment -->
-                            <div>
-                                <div class="d-flex align-items-center mb-1">
-                                <!-- Profile image -->
-                                {% if review.user.userprofile.profile_image %}
-                                    <img src="{{ review.user.userprofile.profile_image.url }}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
+                    <!-- Optional: preview filenames -->
+                    <div id="filePreview" class="mt-2 small text-muted"></div>
+                </div>
+            </div>
+        </form>
+
+        {% else %}
+        <!-- If not logged in -->
+        <div class="alert alert-light border mt-3 text-center">
+            <p class="mb-2">You must be <a href="{% url 'login' %}?next={{ request.path }}">logged in</a> to post a review.</p>
+            <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary btn-sm">Log In</a>
+            <a href="{% url 'register' %}" class="btn btn-outline-secondary btn-sm">Sign Up</a>
+        </div>
+        {% endif %}
+        <div class="panel">
+            <div class="panel-body">
+                <div class="p-3">
+                    <h5 class="mt-4">Reviews</h5>
+
+                    <div class="review-list">
+                    {% for review in reviews %}
+                        <div class="review-card d-flex align-items-start mb-3 p-3 border rounded">
+
+                        <!-- Heart / Like -->
+                        <div class="me-3 text-center">
+                            <button class="like-btn" onclick="toggleLike({{ review.id }})" style="background:none; border:none; cursor:pointer;">
+                            <span id="heart-{{ review.id }}">
+                                {% if review.id in user_liked_review_ids %}
+                                ❤️
                                 {% else %}
-                                    <img src="{% static 'images/default.png' %}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
+                                🤍
                                 {% endif %}
-
-                                <div>
-                                    <strong>{{ review.user.username }}</strong><br>
-                                    <small class="text-muted">{{ review.created_at|date:"l, F jS \a\\t g:i a" }}</small>
-                                </div>
-                                </div>
-                                <!-- Rating stars -->
-                                {% if review.rating_value %}
-                                <div class="star-rating mb-2">
-                                    {% for i in "12345" %}
-                                        {% if forloop.counter <= review.rating_value %}
-                                            <span class="text-warning">★</span>
-                                        {% else %}
-                                            <span class="text-secondary">★</span>
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-
-                                <p style="margin-left: 50px;">{{ review.comment }}</p>
-
-                                {% if review.images.all %}
-                                <div class="d-flex flex-wrap" style="margin-left:50px;">
-                                    {% for media in review.images.all %}
-                                        {% if media.image %}
-                                            {% with file_url=media.image.url %}
-                                                {% if file_url|is_media:"video" %}
-                                                    <video controls class="me-2 mb-2" style="max-width:200px; border-radius:8px;">
-                                                        <source src="{{ file_url }}">
-                                                    </video>
-                                                {% elif file_url|is_media:"audio" %}
-                                                    <audio controls class="me-2 mb-2" style="width:200px;">
-                                                        <source src="{{ file_url }}">
-                                                    </audio>
-                                                {% elif file_url|is_media:"image" %}
-                                                    <img src="{{ file_url }}" class="me-2 mb-2" style="max-width:120px; border-radius:8px;">
-                                                {% else %}
-                                                    <a href="{{ file_url }}" target="_blank" class="me-2 mb-2 d-block">
-                                                        <i class="bi bi-file-earmark-text"></i> Download File
-                                                    </a>
-                                                {% endif %}
-                                            {% endwith %}
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-                            </div>
-                        {% empty %}
-                            <p>No reviews yet. Be the first to comment!</p>
-                        {% endfor %}
+                            </span>
+                            </button>
+                            <div id="like-count-{{ review.id }}">{{ review.likes_count }}</div>
                         </div>
+
+                        <!-- User info + comment -->
+                        <div>
+                            <div class="d-flex align-items-center mb-1">
+                            <!-- Profile image -->
+                            {% if review.user.userprofile.profile_image %}
+                                <img src="{{ review.user.userprofile.profile_image.url }}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
+                            {% else %}
+                                <img src="{% static 'images/default.png' %}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
+                            {% endif %}
+
+                            <div>
+                                <strong>{{ review.user.username }}</strong><br>
+                                <small class="text-muted">{{ review.created_at|date:"l, F jS \a\\t g:i a" }}</small>
+                            </div>
+                            </div>
+                            <!-- Rating stars -->
+                            {% if review.rating_value %}
+                            <div class="star-rating mb-2">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= review.rating_value %}
+                                        <span class="text-warning">★</span>
+                                    {% else %}
+                                        <span class="text-secondary">★</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            <p style="margin-left: 50px;">{{ review.comment }}</p>
+
+                            {% if review.images.all %}
+                            <div class="d-flex flex-wrap" style="margin-left:50px;">
+                                {% for media in review.images.all %}
+                                    {% if media.image %}
+                                        {% with file_url=media.image.url %}
+                                            {% if file_url|is_media:"video" %}
+                                                <video controls class="me-2 mb-2" style="max-width:200px; border-radius:8px;">
+                                                    <source src="{{ file_url }}">
+                                                </video>
+                                            {% elif file_url|is_media:"audio" %}
+                                                <audio controls class="me-2 mb-2" style="width:200px;">
+                                                    <source src="{{ file_url }}">
+                                                </audio>
+                                            {% elif file_url|is_media:"image" %}
+                                                <img src="{{ file_url }}" class="me-2 mb-2" style="max-width:120px; border-radius:8px;">
+                                            {% else %}
+                                                <a href="{{ file_url }}" target="_blank" class="me-2 mb-2 d-block">
+                                                    <i class="bi bi-file-earmark-text"></i> Download File
+                                                </a>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        </div>
+                    {% empty %}
+                        <p>No reviews yet. Be the first to comment!</p>
+                    {% endfor %}
                     </div>
                 </div>
+            </div>
         </div>
     </div>
 

@@ -161,3 +161,4 @@ admin.site.unregister(Review)
 @admin.register(Review)
 class ReviewWithInlineAdmin(ReviewAdmin):
     inlines = [ReviewImageInlineAdmin]
+    

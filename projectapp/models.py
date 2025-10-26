@@ -118,3 +118,20 @@ class ReviewLike(models.Model):
 
     def __str__(self):
         return f"{self.user.username} liked review {self.review.id}"
+    
+    
+class FuelPrice(models.Model):
+    gasoline = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    diesel = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    kerosene = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    last_updated = models.DateTimeField(auto_now=True)
+    region = models.CharField(max_length=100, default='National Average')
+    source = models.CharField(max_length=200, default='DOE Philippines')
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        get_latest_by = 'last_updated'
+        verbose_name_plural = 'Fuel Prices'
+    
+    def __str__(self):
+        return f"Fuel Prices - {self.last_updated.strftime('%b %d, %Y')}"

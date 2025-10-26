@@ -20,6 +20,7 @@ from django.db.models.functions import Coalesce
 from django.db.models import F, ExpressionWrapper, FloatField
 from datetime import timedelta
 from django.utils import timezone
+from django.core.cache import cache
 
 from .models import UserProfile, Post, Rating, Collection, ReviewImage, ReviewLike, Review, Tag
 from .forms import CustomUserCreationForm, PostForm, UserPreferenceForm, ProfileCreationForm, ReviewForm
@@ -454,6 +455,10 @@ def post_detail(request, post_id):
         except Collection.DoesNotExist:
             pass
 
+    # --- CACHED FUEL PRICES ---
+    fuel_prices = get_cached_fuel_prices()
+
+    # Rest of your existing code remains the same...
     # Base queryset
     reviews = post.reviews.select_related('user').all()
 
@@ -500,6 +505,15 @@ def post_detail(request, post_id):
         average=Avg('value'),
         count=Count('id')
     )
+    rating_distribution = []
+    for i in range(5, 0, -1):
+        count = Rating.objects.filter(post=post, value=i).count()
+        percentage = (count / rating_stats['count'] * 100) if rating_stats['count'] > 0 else 0
+        rating_distribution.append({
+            'stars': i,
+            'count': count,
+            'percentage': round(percentage, 1)
+        })
 
     # Review form
     review_form = ReviewForm()
@@ -515,6 +529,8 @@ def post_detail(request, post_id):
         'is_saved': is_saved,  
         'filter_by': filter_by,
         'sort_by': sort_by,
+        'rating_distribution': rating_distribution,
+        'fuel_prices': fuel_prices,
     }
     return render(request, 'post_detail.html', context)
 
@@ -686,3 +702,45 @@ def tag_posts_view(request, tag_name):
     }
 
     return render(request, 'tag_posts.html', context)
+
+def get_cached_fuel_prices():
+    """Get fuel prices with caching (6 hours)"""
+    cache_key = 'current_fuel_prices'
+    fuel_prices = cache.get(cache_key)
+    
+    if fuel_prices:
+        print("DEBUG: Using cached fuel prices")
+        return fuel_prices
+    
+    # If not in cache, scrape fresh prices
+    try:
+        from projectapp.utils.fuel_prices import get_live_fuel_prices
+        fuel_data = get_live_fuel_prices()
+        
+        fuel_prices = {
+            'gasoline': float(fuel_data['gasoline']),
+            'diesel': float(fuel_data['diesel']),
+            'kerosene': float(fuel_data['kerosene']),
+            'region': 'National Average',
+            'source': fuel_data['source'],
+            'last_updated': timezone.now()
+        }
+        
+        cache.set(cache_key, fuel_prices, 21600)
+        print(f"DEBUG: Scraped fresh fuel prices - Gas: ₱{fuel_prices['gasoline']}")
+        
+    except Exception as e:
+        print(f"Fuel price scraping error: {e}")
+        # Fallback prices
+        fuel_prices = {
+            'gasoline': 68.45,
+            'diesel': 61.25,
+            'kerosene': 70.15,
+            'region': 'National Average',
+            'source': 'DOE Philippines (Fallback)',
+            'last_updated': timezone.now()
+        }
+        # Cache fallback for 1 hour
+        cache.set(cache_key, fuel_prices, 3600)
+    
+    return fuel_prices
