@@ -16,6 +16,10 @@ from django.views.decorators.http import require_POST
 from django.template.loader import render_to_string
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
+from django.db.models.functions import Coalesce
+from django.db.models import F, ExpressionWrapper, FloatField
+from datetime import timedelta
+from django.utils import timezone
 
 from .models import UserProfile, Post, Rating, Collection, ReviewImage, ReviewLike, Review, Tag
 from .forms import CustomUserCreationForm, PostForm, UserPreferenceForm, ProfileCreationForm, ReviewForm
@@ -102,20 +106,85 @@ def get_started(request):
         form = UserPreferenceForm(instance=profile)
     return render(request, 'get_started.html', {'form': form})
 
-@login_required
 def index_view(request):
-    # Main posts pagination (for infinite scroll)
     page_num = request.GET.get('page', 1)
-    
-    # Traveler's choice pagination
-    travelers_page_num = request.GET.get('travelers_page', 1)
-    
     query = request.GET.get('q', '')
+    posts_to_exclude_from_more = set()
     
-    print("=== DEBUG: View started ===")
+    top_rated_posts = Post.objects.annotate(
+        avg_rating=Avg('ratings__value'),
+        rating_count=Count('ratings'),
+        review_count=Count('reviews'),
+    ).filter(
+        avg_rating__gte=4,
+        rating_count__gte=2
+    ).annotate(
+        traveler_score=ExpressionWrapper(
+            (F('avg_rating') * 0.7) +
+            (F('rating_count') * 0.2) +
+            (F('review_count') * 0.1),
+            output_field=FloatField()
+        )
+    ).order_by('-traveler_score', '-created_at')
     
-    # SIMPLE QUERY for infinite scroll (ALL POSTS)
-    all_posts = Post.objects.all().order_by('-created_at')
+    # Take all qualified posts for traveler's choice
+    traveler_choice_posts = list(top_rated_posts)
+    
+    # Always exclude traveler's choice posts from More Posts
+    posts_to_exclude_from_more.update(post.id for post in traveler_choice_posts)
+    
+    
+    # Pagination for traveler's choice
+    travelers_paginator = Paginator(traveler_choice_posts, 3)
+    travelers_page_number = request.GET.get('travelers_page', 1)
+    
+    try:
+        travelers_page_number = int(travelers_page_number)
+        travelers_page = travelers_paginator.page(travelers_page_number)
+    except (PageNotAnInteger, ValueError):
+        travelers_page = travelers_paginator.page(1)
+    except EmptyPage:
+        travelers_page = travelers_paginator.page(travelers_paginator.num_pages)
+
+    # 2. RECOMMENDED POSTS (DIFFERENT LOGIC FOR AUTHENTICATED VS ANONYMOUS)
+    if request.user.is_authenticated:
+        # FOR AUTHENTICATED USERS: Allow traveler's choice posts in recommendations
+        recommended_posts = get_enhanced_tag_recommendations(request.user)
+        # No filtering - let recommendations include traveler's choice posts
+        
+        # Add recommended posts to exclusion list for More Posts
+        posts_to_exclude_from_more.update(post.id for post in recommended_posts)
+    else:
+        # FOR ANONYMOUS USERS: Exclude traveler's choice from popular posts
+        recommended_posts = get_popular_posts_for_anonymous()
+        # Filter out traveler's choice posts for anonymous users
+        traveler_choice_ids = set(post.id for post in traveler_choice_posts)
+        recommended_posts = [post for post in recommended_posts if post.id not in traveler_choice_ids]
+        print(f"DEBUG: Found {len(recommended_posts)} popular posts after filtering traveler's choice")
+        
+        # Add recommended posts to exclusion list for More Posts
+        posts_to_exclude_from_more.update(post.id for post in recommended_posts)
+
+    # 3. MORE POSTS (EXCLUDE POSTS FROM TRAVELER'S CHOICE AND RECOMMENDATIONS)
+    all_posts = Post.objects.annotate(
+        avg_rating=Coalesce(Avg('ratings__value'), 0.0),
+        rating_count=Coalesce(Count('ratings'), 0),
+        review_count=Coalesce(Count('reviews'), 0),
+    ).annotate(
+        bayesian_score=ExpressionWrapper(
+            (F('rating_count') / (F('rating_count') + 10)) * F('avg_rating') + 
+            (10 / (F('rating_count') + 10)) * 3.5,
+            output_field=FloatField()
+        ),
+        combined_score=ExpressionWrapper(
+            (F('bayesian_score') * 0.6) +
+            (F('review_count') * 0.2) +
+            (F('rating_count') * 0.2),
+            output_field=FloatField()
+        )
+    ).exclude(
+        id__in=posts_to_exclude_from_more  
+    ).order_by('-combined_score', '-created_at')
     
     # Search functionality
     if query:
@@ -125,7 +194,7 @@ def index_view(request):
             Q(tags__name__icontains=query)
         ).distinct()
 
-    # Pagination for infinite scroll (main posts)
+    # Pagination for infinite scroll
     paginator = Paginator(all_posts, 6)
     try:
         page_num = int(page_num)
@@ -136,40 +205,19 @@ def index_view(request):
         all_posts_page = paginator.page(paginator.num_pages)
 
     # Get saved posts
-    try:
-        collection, created = Collection.objects.get_or_create(user=request.user)
-        saved_posts = list(collection.posts.values_list('id', flat=True))
-        print(f"DEBUG: User has {len(saved_posts)} saved posts")
-    except Exception as e:
-        print(f"DEBUG: Collection error: {e}")
-        saved_posts = []
-
-    # ENHANCED TAG-BASED RECOMMENDATIONS
-    print("=== DEBUG: Getting enhanced tag-based recommendations ===")
-    recommended_posts = get_enhanced_tag_recommendations(request.user)
-    print(f"DEBUG: Final recommended posts count: {recommended_posts.count()}")
-
-    # TOP-RATED POSTS for Traveler's Choice (with separate pagination)
-    top_rated_posts = Post.objects.annotate(
-        avg_rating=Avg('ratings__value')
-    ).filter(avg_rating__gte=4).order_by('-avg_rating', '-created_at')
-    
-    # Pagination for top-rated posts (traveler's choice)
-    travelers_paginator = Paginator(top_rated_posts, 3)  # 3 posts per page for sidebar
-    try:
-        travelers_page_num = int(travelers_page_num)
-        travelers_page = travelers_paginator.page(travelers_page_num)
-    except (PageNotAnInteger, ValueError):
-        travelers_page = travelers_paginator.page(1)
-    except EmptyPage:
-        travelers_page = travelers_paginator.page(travelers_paginator.num_pages)
-
-    print(f"DEBUG: Traveler's Choice - Page {travelers_page_num} of {travelers_paginator.num_pages}")
+    saved_posts = []
+    if request.user.is_authenticated:
+        try:
+            collection, created = Collection.objects.get_or_create(user=request.user)
+            saved_posts = list(collection.posts.values_list('id', flat=True))
+            print(f"DEBUG: User has {len(saved_posts)} saved posts")
+        except Exception as e:
+            print(f"DEBUG: Collection error: {e}")
 
     # Top tags
     top_tags = Tag.objects.annotate(post_count=Count('posts')).order_by('-post_count')[:6]
 
-    # Handle AJAX requests for infinite scroll
+    # Handle AJAX requests
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         print(f"DEBUG: AJAX request - page {page_num}, has_next: {all_posts_page.has_next()}")
         posts_html = render_to_string('partials/post_list.html', {
@@ -189,14 +237,58 @@ def index_view(request):
         'top_tags': top_tags,
         'query': query,
         'request': request,
+        'user': request.user,
     }
 
     return render(request, 'index.html', context)
 
+def get_popular_posts_for_anonymous(limit=6):
+    """
+    Get popular posts for anonymous users based on engagement
+    """
+    return Post.objects.annotate(
+        avg_rating=Coalesce(Avg('ratings__value'), 0.0),
+        rating_count=Coalesce(Count('ratings'), 0),
+        review_count=Coalesce(Count('reviews'), 0),
+        collection_count=Coalesce(Count('collections'), 0),  # How many times saved
+    ).annotate(
+        # Score that considers ratings, reviews, and saves
+        popularity_score=ExpressionWrapper(
+            (F('avg_rating') * 0.4) +           # 40% rating quality
+            (F('rating_count') * 0.2) +         # 20% number of ratings
+            (F('review_count') * 0.2) +         # 20% number of reviews
+            (F('collection_count') * 0.2),      # 20% number of saves
+            output_field=FloatField()
+        )
+    ).filter(
+        rating_count__gte=1  # At least one rating
+    ).order_by('-popularity_score', '-created_at')[:limit]
+
+def get_trending_posts(limit=6):
+    """
+    Alternative: Get recently popular posts (last 30 days)
+    """
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    
+    return Post.objects.filter(
+        created_at__gte=thirty_days_ago
+    ).annotate(
+        recent_rating_count=Count('ratings', filter=Q(ratings__created_at__gte=thirty_days_ago)),
+        recent_review_count=Count('reviews', filter=Q(reviews__created_at__gte=thirty_days_ago)),
+    ).filter(
+        recent_rating_count__gte=1
+    ).order_by('-recent_rating_count', '-recent_review_count', '-created_at')[:limit]
+    
 def get_enhanced_tag_recommendations(user, limit=6):
     """
-    Fixed recommendation system using the correct field names
+    Enhanced recommendation system that combines:
+    1. User's preferred tags (explicit preferences)
+    2. Tags from saved posts (implicit preferences)
     """
+    # Safety check
+    if not user or not user.is_authenticated:
+        return get_popular_posts_for_anonymous(limit)
+    
     try:
         print("=== DEBUG: Starting enhanced recommendations ===")
         
@@ -204,16 +296,12 @@ def get_enhanced_tag_recommendations(user, limit=6):
         all_relevant_tags = get_all_relevant_tags(user)
         
         print(f"DEBUG: Found {len(all_relevant_tags)} relevant tags total")
-        if all_relevant_tags:
-            for tag in all_relevant_tags:
-                print(f"  - {tag.name}")
         
         if all_relevant_tags:
             # Get posts that match these tags (excluding already saved posts)
             saved_post_ids = get_saved_post_ids(user)
-            print(f"DEBUG: Excluding {len(saved_post_ids)} saved posts")
             
-            # Find posts with matching tags
+            # Find posts with matching tags, ordered by relevance
             recommended = Post.objects.filter(
                 tags__in=all_relevant_tags
             ).exclude(
@@ -224,26 +312,17 @@ def get_enhanced_tag_recommendations(user, limit=6):
             
             print(f"DEBUG: Found {recommended.count()} recommended posts")
             
-            # Detailed debug for each recommended post
-            for post in recommended:
-                post_tags = list(post.tags.all().values_list('name', flat=True))
-                relevant_tag_names = [tag.name for tag in all_relevant_tags]
-                matching_tags = set(post_tags) & set(relevant_tag_names)
-                print(f"DEBUG: '{post.title}' matches {len(matching_tags)} tags: {list(matching_tags)}")
-            
             if recommended.exists():
                 return recommended
         
-        # FALLBACK: If no recommendations found
-        print("DEBUG: No tag-based recommendations found, using fallback")
-        saved_post_ids = get_saved_post_ids(user)
+        # FALLBACK: If no recommendations found, show popular posts
+        print("DEBUG: No tag-based recommendations, showing popular posts")
+        saved_post_ids = get_saved_post_ids(user) if user.is_authenticated else []
         return get_popular_posts_fallback(limit, saved_post_ids)
         
     except Exception as e:
         print(f"DEBUG: Enhanced recommendation error: {e}")
-        import traceback
-        traceback.print_exc()
-        return Post.objects.all().order_by('-created_at')[:limit]
+        return get_popular_posts_for_anonymous(limit)
 
 
 def get_all_relevant_tags(user):
@@ -348,9 +427,32 @@ def create_post(request):
     return render(request, 'create_post.html', {'form': form})
 
 
-@login_required
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
+    
+    # Initialize variables with default values for anonymous users
+    user_rating = 0
+    user_liked_review_ids = []
+    is_saved = False
+    
+    # Only try to get user-specific data if user is authenticated
+    if request.user.is_authenticated:
+        try:
+            user_rating = Rating.objects.get(user=request.user, post=post).value
+        except Rating.DoesNotExist:
+            user_rating = 0
+        
+        # Get user's liked reviews
+        user_liked_review_ids = ReviewLike.objects.filter(
+            user=request.user, review__in=Review.objects.filter(post=post)
+        ).values_list('review_id', flat=True)
+        
+        # Check if post is saved
+        try:
+            collection = Collection.objects.get(user=request.user)
+            is_saved = post in collection.posts.all()
+        except Collection.DoesNotExist:
+            pass
 
     # Base queryset
     reviews = post.reviews.select_related('user').all()
@@ -363,33 +465,37 @@ def post_detail(request, post_id):
     # --- SORT ---
     sort_by = request.GET.get('sort', 'new')
 
-    # Annotate rating and likes
-    reviews = reviews.annotate(
-        rating_value=Subquery(
-            Rating.objects.filter(user=OuterRef('user_id'), post=post)
-            .values('value')[:1]
-        ),
-        total_likes=Count('likes')
-    )
+    # Annotate rating and likes - handle both authenticated and anonymous users
+    if request.user.is_authenticated:
+        reviews = reviews.annotate(
+            rating_value=Subquery(
+                Rating.objects.filter(user=OuterRef('user_id'), post=post)
+                .values('value')[:1]
+            ),
+            total_likes=Count('likes')
+        )
+    else:
+        # For anonymous users, just annotate total_likes without user-specific rating
+        reviews = reviews.annotate(
+            total_likes=Count('likes')
+        )
 
     # Apply sorting
     if sort_by == 'new':
         reviews = reviews.order_by('-created_at')
-    elif sort_by == 'highest':
+    elif sort_by == 'highest_rating' and request.user.is_authenticated:
         reviews = reviews.order_by('-rating_value', '-created_at')
-    elif sort_by == 'lowest':
+    elif sort_by == 'lowest_rating' and request.user.is_authenticated:
         reviews = reviews.order_by('rating_value', '-created_at')
     elif sort_by == 'most_likes':
         reviews = reviews.order_by('-total_likes', '-created_at')
     elif sort_by == 'least_likes':
         reviews = reviews.order_by('total_likes', '-created_at')
+    else:
+        # Default sorting for anonymous users or invalid sort options
+        reviews = reviews.order_by('-created_at')
 
-    # Likes for current user
-    user_liked_review_ids = ReviewLike.objects.filter(
-        user=request.user, review__in=reviews
-    ).values_list('review_id', flat=True)
-
-    # Average rating
+    # Average rating (this works for all users)
     rating_stats = Rating.objects.filter(post=post).aggregate(
         average=Avg('value'),
         count=Count('id')
@@ -405,6 +511,8 @@ def post_detail(request, post_id):
         'user_liked_review_ids': list(user_liked_review_ids),
         'average_rating': rating_stats['average'],
         'rating_count': rating_stats['count'],
+        'user_rating': user_rating, 
+        'is_saved': is_saved,  
         'filter_by': filter_by,
         'sort_by': sort_by,
     }

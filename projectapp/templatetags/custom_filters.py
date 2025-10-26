@@ -45,3 +45,5 @@ def is_selected(value, arg):
 @property
 def likes_count(self):
     return self.likes.count()
+
+

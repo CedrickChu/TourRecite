@@ -1,0 +1,53 @@
+<!-- Enhanced Login Required Modal -->
+<div class="modal fade" id="loginRequiredModal" tabindex="-1" aria-labelledby="loginRequiredModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-0">
+                <div class="mb-4">
+                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                        <i class="bi bi-bookmark-check text-primary" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+                <h5 class="fw-bold mb-3">Save to Your Travel List</h5>
+                <p class="text-muted mb-4">
+                    Create your personal collection of favorite spots and get tailored recommendations just for you.
+                </p>
+                
+                <!-- Benefits list -->
+                <div class="text-start mb-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <small>Save posts for later</small>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <small>Personalized recommendations</small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <small>Share your own experiences</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center">
+                <button type="button" class="btn btn-lg btn-outline-secondary flex-fill me-2" data-bs-dismiss="modal">
+                    Maybe Later
+                </button>
+                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-lg btn-primary flex-fill">
+                    Sign In to Save
+                </a>
+            </div>
+            {% if signup_url %}
+            <div class="modal-footer border-0 justify-content-center">
+                <small class="text-muted">
+                    Don't have an account? 
+                    <a href="{% url 'signup' %}?next={{ request.path }}" class="text-decoration-none">Sign up</a>
+                </small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
