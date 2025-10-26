@@ -10,10 +10,10 @@ from django.urls import reverse_lazy
 from django.contrib.auth.views import LogoutView
 from django.contrib.auth.models import User
 from functools import wraps
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 import json
 from django.views.decorators.http import require_POST
-
+from django.template.loader import render_to_string
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -102,75 +102,232 @@ def get_started(request):
         form = UserPreferenceForm(instance=profile)
     return render(request, 'get_started.html', {'form': form})
 
-# ---------- Index View (Main Page) ----------
 @login_required
 def index_view(request):
+    # Main posts pagination (for infinite scroll)
+    page_num = request.GET.get('page', 1)
+    
+    # Traveler's choice pagination
+    travelers_page_num = request.GET.get('travelers_page', 1)
+    
     query = request.GET.get('q', '')
-
-    # Base queryset for all posts
-    posts = Post.objects.all()
-
-    # --- Top-rated posts ---
-    top_rated_posts = Post.objects.annotate(
-        avg_rating=Avg('ratings__value')
-    ).filter(avg_rating__gte=4).order_by('-avg_rating', '-created_at')
-
-    # --- Get tags from top-rated posts ---
-    top_tags = (
-        Tag.objects.filter(posts__in=top_rated_posts)  # ✅ fix here
-        .annotate(tag_count=Count('posts'))
-        .order_by('-tag_count')[:6]
-    )
-
-    # --- Pagination for top-rated posts ---
-    paginator = Paginator(top_rated_posts, 6)
-    page_number = request.GET.get('page')
-    travelers_page = paginator.get_page(page_number)
-
-    # --- Search functionality ---
+    
+    print("=== DEBUG: View started ===")
+    
+    # SIMPLE QUERY for infinite scroll (ALL POSTS)
+    all_posts = Post.objects.all().order_by('-created_at')
+    
+    # Search functionality
     if query:
-        posts = posts.filter(
+        all_posts = all_posts.filter(
             Q(title__icontains=query) |
             Q(content__icontains=query) |
             Q(tags__name__icontains=query)
         ).distinct()
 
-    # --- Recommended posts ---
-    recommended_posts = get_recommendations_for_user(request.user, top_n=6)
+    # Pagination for infinite scroll (main posts)
+    paginator = Paginator(all_posts, 6)
+    try:
+        page_num = int(page_num)
+        all_posts_page = paginator.page(page_num)
+    except (PageNotAnInteger, ValueError):
+        all_posts_page = paginator.page(1)
+    except EmptyPage:
+        all_posts_page = paginator.page(paginator.num_pages)
 
-    # --- Fallback recommendations ---
-    if not recommended_posts.exists():
-        user_profile = UserProfile.objects.filter(user=request.user).first()
-        if user_profile and user_profile.tags.exists():
-            recommended_posts = (
-                Post.objects.filter(tags__in=user_profile.tags.all())
-                .distinct()
-                .annotate(tag_match=Count('tags'))
-                .order_by('-tag_match', '-created_at')[:6]
-            )
-        else:
-            recommended_posts = Post.objects.order_by('-created_at')[:6]
+    # Get saved posts
+    try:
+        collection, created = Collection.objects.get_or_create(user=request.user)
+        saved_posts = list(collection.posts.values_list('id', flat=True))
+        print(f"DEBUG: User has {len(saved_posts)} saved posts")
+    except Exception as e:
+        print(f"DEBUG: Collection error: {e}")
+        saved_posts = []
 
-    # --- Travelers’ Choice ---
-    travelers_choice = Post.objects.annotate(
-        max_rating=Max('ratings__value')
-    ).order_by('-max_rating', '-created_at')[:6]
+    # ENHANCED TAG-BASED RECOMMENDATIONS
+    print("=== DEBUG: Getting enhanced tag-based recommendations ===")
+    recommended_posts = get_enhanced_tag_recommendations(request.user)
+    print(f"DEBUG: Final recommended posts count: {recommended_posts.count()}")
 
-    # --- Saved posts ---
-    collection, _ = Collection.objects.get_or_create(user=request.user)
-    saved_posts = collection.posts.values_list('id', flat=True)
+    # TOP-RATED POSTS for Traveler's Choice (with separate pagination)
+    top_rated_posts = Post.objects.annotate(
+        avg_rating=Avg('ratings__value')
+    ).filter(avg_rating__gte=4).order_by('-avg_rating', '-created_at')
+    
+    # Pagination for top-rated posts (traveler's choice)
+    travelers_paginator = Paginator(top_rated_posts, 3)  # 3 posts per page for sidebar
+    try:
+        travelers_page_num = int(travelers_page_num)
+        travelers_page = travelers_paginator.page(travelers_page_num)
+    except (PageNotAnInteger, ValueError):
+        travelers_page = travelers_paginator.page(1)
+    except EmptyPage:
+        travelers_page = travelers_paginator.page(travelers_paginator.num_pages)
 
-    # --- Context ---
+    print(f"DEBUG: Traveler's Choice - Page {travelers_page_num} of {travelers_paginator.num_pages}")
+
+    # Top tags
+    top_tags = Tag.objects.annotate(post_count=Count('posts')).order_by('-post_count')[:6]
+
+    # Handle AJAX requests for infinite scroll
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        print(f"DEBUG: AJAX request - page {page_num}, has_next: {all_posts_page.has_next()}")
+        posts_html = render_to_string('partials/post_list.html', {
+            'posts': all_posts_page.object_list,
+            'saved_posts': saved_posts,
+        })
+        return JsonResponse({
+            'posts_html': posts_html,
+            'has_next': all_posts_page.has_next()
+        })
+
     context = {
-        'posts': posts,
-        'recommended_posts': recommended_posts,
-        'travelers_choice': travelers_choice,
+        'all_posts_page': all_posts_page,
         'saved_posts': saved_posts,
+        'recommended_posts': recommended_posts,
         'travelers_page': travelers_page,
-        'top_tags': top_tags,  
+        'top_tags': top_tags,
+        'query': query,
+        'request': request,
     }
 
     return render(request, 'index.html', context)
+
+def get_enhanced_tag_recommendations(user, limit=6):
+    """
+    Fixed recommendation system using the correct field names
+    """
+    try:
+        print("=== DEBUG: Starting enhanced recommendations ===")
+        
+        # Get all relevant tags from both sources
+        all_relevant_tags = get_all_relevant_tags(user)
+        
+        print(f"DEBUG: Found {len(all_relevant_tags)} relevant tags total")
+        if all_relevant_tags:
+            for tag in all_relevant_tags:
+                print(f"  - {tag.name}")
+        
+        if all_relevant_tags:
+            # Get posts that match these tags (excluding already saved posts)
+            saved_post_ids = get_saved_post_ids(user)
+            print(f"DEBUG: Excluding {len(saved_post_ids)} saved posts")
+            
+            # Find posts with matching tags
+            recommended = Post.objects.filter(
+                tags__in=all_relevant_tags
+            ).exclude(
+                id__in=saved_post_ids
+            ).distinct().annotate(
+                matching_tags_count=Count('tags', filter=Q(tags__in=all_relevant_tags))
+            ).order_by('-matching_tags_count', '-created_at')[:limit]
+            
+            print(f"DEBUG: Found {recommended.count()} recommended posts")
+            
+            # Detailed debug for each recommended post
+            for post in recommended:
+                post_tags = list(post.tags.all().values_list('name', flat=True))
+                relevant_tag_names = [tag.name for tag in all_relevant_tags]
+                matching_tags = set(post_tags) & set(relevant_tag_names)
+                print(f"DEBUG: '{post.title}' matches {len(matching_tags)} tags: {list(matching_tags)}")
+            
+            if recommended.exists():
+                return recommended
+        
+        # FALLBACK: If no recommendations found
+        print("DEBUG: No tag-based recommendations found, using fallback")
+        saved_post_ids = get_saved_post_ids(user)
+        return get_popular_posts_fallback(limit, saved_post_ids)
+        
+    except Exception as e:
+        print(f"DEBUG: Enhanced recommendation error: {e}")
+        import traceback
+        traceback.print_exc()
+        return Post.objects.all().order_by('-created_at')[:limit]
+
+
+def get_all_relevant_tags(user):
+    """
+    Get all tags that are relevant to the user from both sources
+    """
+    relevant_tags = set()
+    
+    # 1. Get preferred tags from UserProfile (using 'tags' field)
+    try:
+        user_profile = UserProfile.objects.get(user=user)
+        preferred_tags = user_profile.tags.all()  
+        
+        print(f"DEBUG: UserProfile found with {preferred_tags.count()} preferred tags")
+        for tag in preferred_tags:
+            print(f"  - Preferred: {tag.name}")
+        
+        relevant_tags.update(preferred_tags)
+        
+    except UserProfile.DoesNotExist:
+        print("DEBUG: UserProfile does not exist")
+    except Exception as e:
+        print(f"DEBUG: Error getting preferred tags: {e}")
+    
+    # 2. Get tags from saved posts
+    try:
+        collection, created = Collection.objects.get_or_create(user=user)
+        saved_posts = collection.posts.all()
+        
+        print(f"DEBUG: User has {saved_posts.count()} saved posts")
+        
+        if saved_posts.exists():
+            # Get all unique tags from saved posts
+            saved_tags = Tag.objects.filter(posts__in=saved_posts).distinct()
+            
+            print(f"DEBUG: Found {saved_tags.count()} tags from saved posts")
+            for tag in saved_tags:
+                # Count how many saved posts have this tag
+                count = saved_posts.filter(tags=tag).count()
+                print(f"  - From saved posts: {tag.name} (in {count} posts)")
+            
+            relevant_tags.update(saved_tags)
+            
+    except Exception as e:
+        print(f"DEBUG: Error getting saved post tags: {e}")
+    
+    # Convert set to list
+    result = list(relevant_tags)
+    print(f"DEBUG: Total relevant tags: {len(result)}")
+    
+    return result
+
+
+def get_saved_post_ids(user):
+    """
+    Get list of post IDs that user has already saved
+    """
+    try:
+        collection, created = Collection.objects.get_or_create(user=user)
+        saved_ids = list(collection.posts.values_list('id', flat=True))
+        print(f"DEBUG: User has {len(saved_ids)} saved posts to exclude")
+        return saved_ids
+    except Exception as e:
+        print(f"DEBUG: Error getting saved post IDs: {e}")
+        return []
+
+
+def get_popular_posts_fallback(limit, exclude_post_ids=None):
+    """
+    Fallback to popular posts when no tag-based recommendations
+    """
+    if exclude_post_ids is None:
+        exclude_post_ids = []
+    
+    print("DEBUG: Using popular posts fallback")
+    popular_posts = Post.objects.exclude(
+        id__in=exclude_post_ids
+    ).annotate(
+        save_count=Count('collection'),
+        rating_count=Count('ratings')
+    ).order_by('-save_count', '-rating_count', '-created_at')[:limit]
+    
+    print(f"DEBUG: Fallback found {popular_posts.count()} popular posts")
+    return popular_posts
 
 # ---------- Admin-Only Post Creation ----------
 @login_required
@@ -274,15 +431,43 @@ class CustomLogoutView(LogoutView):
 # ---------- Toggle Collection (Save/Unsave) ----------
 @login_required
 def toggle_collection(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    collection, _ = Collection.objects.get_or_create(user=request.user)
-    if post in collection.posts.all():
-        collection.posts.remove(post)
-        added = False
-    else:
-        collection.posts.add(post)
-        added = True
-    return JsonResponse({'added': added})
+    if request.method == 'POST':
+        try:
+            post = Post.objects.get(id=post_id)
+            collection, created = Collection.objects.get_or_create(user=request.user)
+            
+            if post in collection.posts.all():
+                # Remove from collection
+                collection.posts.remove(post)
+                added = False
+            else:
+                # Add to collection
+                collection.posts.add(post)
+                added = True
+            
+            # Get updated count
+            total_saved = collection.posts.count()
+            
+            return JsonResponse({
+                'added': added,
+                'total_saved': total_saved,
+                'post_id': post_id,
+                'post_title': post.title, 
+                'success': True
+            })
+            
+        except Post.DoesNotExist:
+            return JsonResponse({
+                'error': 'Post not found',
+                'success': False
+            }, status=404)
+        except Exception as e:
+            return JsonResponse({
+                'error': str(e),
+                'success': False
+            }, status=500)
+    
+    return JsonResponse({'error': 'Invalid method'}, status=405)
 
 @login_required
 def remove_from_collection(request, post_id):
@@ -294,86 +479,6 @@ def remove_from_collection(request, post_id):
     else:
         removed = False
     return JsonResponse({'removed': removed})
-
-# ---------- Similar Posts ----------
-def get_similar_posts(post_id, n=5):
-    matrix = build_user_post_matrix()
-    if matrix.empty or post_id not in matrix.columns:
-        return Post.objects.none()
-
-    post_similarity = cosine_similarity(matrix.T)
-    post_similarity_df = pd.DataFrame(post_similarity, index=matrix.columns, columns=matrix.columns)
-
-    similar_scores = post_similarity_df[post_id].sort_values(ascending=False)[1:n+1]
-    similar_posts = Post.objects.filter(id__in=similar_scores.index)
-    return similar_posts
-
-# ---------- Build User-Post Matrix ----------
-def build_user_post_matrix():
-    data = []
-    posts = Post.objects.prefetch_related('tags')  # assuming Post has a ManyToManyField 'tags'
-    collections = Collection.objects.prefetch_related('posts__tags', 'user')
-
-    for collection in collections:
-        for post in collection.posts.all():
-            data.append({
-                'user_id': collection.user.id,
-                'post_id': post.id,
-                'value': 1.0  
-            })
-
-    # --- Add tag similarity influence ---
-    for collection in collections:
-        # get all tags from the user's saved posts
-        user_tags = set(
-            tag.id for post in collection.posts.all() for tag in post.tags.all()
-        )
-
-        # find all posts that share these tags
-        tagged_posts = posts.filter(tags__id__in=user_tags).distinct()
-
-        for post in tagged_posts:
-            if post in collection.posts.all():
-                continue
-            data.append({
-                'user_id': collection.user.id,
-                'post_id': post.id,
-                'value': 0.3 
-            })
-
-    if not data:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(data)
-    matrix = df.pivot_table(index='user_id', columns='post_id', values='value', fill_value=0)
-    return matrix
-
-# ---------- Get Recommendations for a User ----------
-def get_recommendations_for_user(user, top_n=5):
-    matrix = build_user_post_matrix()
-
-    if matrix.empty or user.id not in matrix.index:
-        return Post.objects.none()
-
-    user_sim = cosine_similarity(matrix)
-    user_sim_df = pd.DataFrame(user_sim, index=matrix.index, columns=matrix.index)
-
-    similar_users = user_sim_df[user.id].drop(user.id).sort_values(ascending=False)
-    if similar_users.empty:
-        return Post.objects.none()
-
-    user_collections = set(Collection.objects.get(user=user).posts.values_list('id', flat=True))
-    scores = matrix.T.dot(similar_users.reindex(matrix.index).fillna(0))
-
-    recommended_post_ids = (
-        scores[~scores.index.isin(user_collections)]
-        .sort_values(ascending=False)
-        .head(top_n)
-        .index
-    )
-
-    recommended_posts = Post.objects.filter(id__in=recommended_post_ids)
-    return recommended_posts 
 
 @login_required
 def add_review(request, post_id):

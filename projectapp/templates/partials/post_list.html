@@ -1,39 +1,55 @@
-{% for post in other_posts %}
+{% for post in posts %}
     <div class="mb-5 pb-4 border-bottom d-flex justify-content-between align-items-start post-card">
         <div class="flex-grow-1 pe-3">
+            <!-- Author + Category -->
             <div class="text-muted small mb-2">
-                In <span class="fw-semibold text-dark">{{ post.get_category_display }}</span> •
+                In 
+                <span class="fw-semibold text-dark">
+                    {{ post.get_category_display }}
+                </span>
+                &nbsp;•&nbsp;
             </div>
+
+            <!-- Title -->
             <a href="{% url 'post_detail' post_id=post.id %}" class="text-dark text-decoration-none">
                 <h4 class="fw-bold mb-2">{{ post.title }}</h4>
             </a>
+
+            <!-- Description -->
             <p class="text-muted mb-3" style="font-size: 0.95rem;">
                 {% if post.content|wordcount > 25 %}
-                    {{ post.content|truncatewords:25 }}… 
+                    {{ post.content|truncatewords:25 }}…
                     <a href="{% url 'post_detail' post_id=post.id %}" class="text-decoration-none">Continue reading</a>
                 {% else %}
                     {{ post.content }}
                 {% endif %}
             </p>
+            
             {% if post.tags.all %}
                 <div class="mb-3">
                     {% for tag in post.tags.all %}
-                        <span class="badge rounded-pill bg-light text-dark border me-1 mb-1" style="font-size:1rem;">
+                         <span class="badge rounded-pill bg-light text-dark border me-1 mb-1" style="font-size:1rem;">
                             <a href="{% url 'tag-posts' tag.name %}" class="badge bg-light text-dark border text-decoration-none">
                                 #{{ tag.name }}
                             </a>
-                        </span>
+                         </span>
                     {% endfor %}
                 </div>
             {% endif %}
+
+            <!-- Bottom icons -->
             <div class="d-flex align-items-center gap-3 text-muted small">
                 <span>{{ post.created_at|date:"M j" }}</span>
-                <span onclick="toggleCollection({{ post.id }}, this)" style="cursor:pointer;" data-post-id="{{ post.id }}">
+                <span onclick="toggleCollection({{ post.id }}, this)" 
+                    style="cursor:pointer;" 
+                    data-post-id="{{ post.id }}">
                     {% if post.id in saved_posts %}
+                        <!-- Saved icon -->
                         <svg class="saved-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                             <path fill="#000" d="M7.5 3.75a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-14a2 2 0 0 0-2-2z"/>
                         </svg>
                     {% else %}
+                        <!-- Unsaved icon -->
                         <svg class="unsaved-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                             <path fill="#000" d="M17.5 1.25a.5.5 0 0 1 1 0v2.5H21a.5.5 0 0 1 0 1h-2.5v2.5a.5.5 0 0 1-1 0v-2.5H15a.5.5 0 0 1 0-1h2.5zm-11 4.5a1 1 0 0 1 1-1H11a.5.5 0 0 0 0-1H7.5a2 2 0 0 0-2 2v14a.5.5 0 0 0 .8.4l5.7-4.4 5.7 4.4a.5.5 0 0 0 .8-.4v-8.5a.5.5 0 0 0-1 0v7.48l-5.2-4a.5.5 0 0 0-.6 0l-5.2 4z"/>
                         </svg>
@@ -41,15 +57,14 @@
                 </span>
             </div>
         </div>
+        <!-- Image (Right side) -->
         {% if post.image %}
-            <div class="post-thumb flex-shrink-0">
-                <a href="{% url 'post_detail' post_id=post.id %}">
-                    <img src="{{ post.image.url }}" alt="{{ post.title }}" style="width:140px;height:100px;object-fit:cover;">
-                </a>
-            </div>
+        <div class="post-thumb flex-shrink-0">
+            <a href="{% url 'post_detail' post_id=post.id %}">
+                <img src="{{ post.image.url }}"  alt="{{ post.title }}"
+                    style="width:140px;height:100px;object-fit:cover;">
+            </a>
+        </div>
         {% endif %}
     </div>
 {% endfor %}
-{% if not other_posts %}
-    <p class="text-muted text-center">No posts to display.</p>
-{% endif %}
