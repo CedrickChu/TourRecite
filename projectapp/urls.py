@@ -21,7 +21,7 @@ urlpatterns = [
     path('post/<int:post_id>/rate/', views.post_rating, name='post_rating'),
     path('review/<int:review_id>/like/', views.toggle_like_review, name='toggle_like_review'),
 
-
+    path('tag/<str:tag_name>/', views.tag_posts_view, name='tag-posts'),
 
 
 

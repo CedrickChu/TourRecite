@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}TourRecite{% endblock %}
+
+{% block navbar %}
+    {% include 'header.html' %}
+{% endblock %}
+
+{% block content %}
+<section class="container" style="margin-top: 100px;">
+
+    <div class="container mt-4">
+        <h4 class="fw-bold mb-3">Posts tagged with "{{ tag.name }}"</h4>
+
+        {% if posts %}
+            <div class="row g-4">
+                {% for post in posts %}
+                    <div class="col-md-4 mb-4 px-2">
+                        <div class="card h-100 shadow-sm" style=" width: 22rem!important;">
+                            {% if post.image %}
+                                <img src="{{ post.image.url }}" class="card-img-top" alt="{{ post.title }}" style="height:200px; object-fit:cover;">
+                            {% else %}
+                                <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="Default Image" style="height:200px; object-fit:cover;">
+                            {% endif %}
+                            <div class="card-body">
+                                <h5 class="card-title">{{ post.title }}</h5>
+                                <p class="card-text text-truncate">{{ post.content|truncatewords:20 }}</p>
+                                <small class="text-muted">⭐ {{ post.avg_rating|floatformat:1|default:"N/A" }}</small><br>
+                                <a href="{% url 'post_detail' post.id %}" class="btn btn-sm btn-primary mt-2">Read More</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No posts found for this tag.</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

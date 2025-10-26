@@ -90,8 +90,12 @@
                             {% if post.tags.all %}
                                 <div class="mb-3">
                                     {% for tag in post.tags.all %}
-                                        <span class="badge rounded-pill bg-light text-dark border me-1 mb-1" style="font-size:0.8rem;">
-                                            #{{ tag.name }}
+                                         <span class="badge rounded-pill bg-light text-dark border me-1 mb-1" style="font-size:1rem;">
+                                            <a href="{% url 'tag-posts' tag.name %}" class="badge bg-light text-dark border text-decoration-none">
+                                                #{{ tag.name }}
+                                            </a>
+                                       
+                                           
                                         </span>
                                     {% endfor %}
                                 </div>
@@ -131,8 +135,6 @@
             {% else %}
                 <p class="text-muted">No recommendations yet. Try saving or tagging your interests!</p>
             {% endif %}
-
-
 
         </div>
         <!-- Right Column: Sidebar -->
@@ -175,9 +177,14 @@
                                         {% if post.tags.exists %}
                                             <div class="mt-2">
                                                 {% for tag in post.tags.all %}
-                                                    <span class="badge bg-light text-dark border rounded-pill me-1 small">
+                                                <span class="badge rounded-pill bg-light text-dark border me-1 mb-1" style="font-size:1rem;">
+                                                    <a href="{% url 'tag-posts' tag.name %}" class="badge bg-light text-dark border text-decoration-none">
                                                         #{{ tag.name }}
-                                                    </span>
+                                                    </a>
+                                            
+                                                
+                                                </span>
+
                                                 {% endfor %}
                                             </div>
                                         {% endif %}
@@ -217,12 +224,13 @@
                     <!-- Recommended Tags -->
                     <h6 class="fw-bold mt-4 mb-3">Recommended</h6>
                     <div class="d-flex flex-wrap gap-2 mb-4">
-                        <span class="badge bg-light text-dark border">Technology</span>
-                        <span class="badge bg-light text-dark border">Writing</span>
-                        <span class="badge bg-light text-dark border">Self Improvement</span>
-                        <span class="badge bg-light text-dark border">Relationships</span>
-                        <span class="badge bg-light text-dark border">Cryptocurrency</span>
-                        <span class="badge bg-light text-dark border">Politics</span>
+                        {% for tag in top_tags %}
+                            <a href="{% url 'tag-posts' tag.name %}" class="badge bg-light text-dark border text-decoration-none">
+                                #{{ tag.name }}
+                            </a>
+                        {% empty %}
+                            <span class="text-muted">No recommendations yet.</span>
+                        {% endfor %}
                     </div>
 
                     <!-- Your Travel List -->
@@ -254,6 +262,28 @@
 </section>
 
 <script>
+    let page = 2;
+    let loading = false;
+    let hasNext = {{ other_posts.has_next|yesno:"true,false" }};
+
+    window.addEventListener('scroll', () => {
+        if (!hasNext || loading) return;
+
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+            loading = true;
+            document.getElementById('loading').style.display = 'block';
+
+            fetch(`?page=${page}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('other-posts').insertAdjacentHTML('beforeend', data.posts_html);
+                    hasNext = data.has_next;
+                    page++;
+                    loading = false;
+                    document.getElementById('loading').style.display = 'none';
+                });
+        }
+    });
     function confirmDelete(postId) {
         if (confirm("Are you sure you want to delete this post?")) {
             const csrftoken = getCookie('csrftoken');

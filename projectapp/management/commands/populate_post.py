@@ -9,7 +9,7 @@ import os
 class Command(BaseCommand):
     help = 'Populate at least 20 posts in Puerto Princesa with existing tags and placeholder images'
 
-    PLACEHOLDER_PATH = os.path.join(settings.BASE_DIR, 'projectapp\static', 'images', 'default.png')  # make sure this file exists
+    PLACEHOLDER_PATH = os.path.join(settings.BASE_DIR, 'projectapp\static', 'images', 'placeholder.png')  
 
     def handle(self, *args, **kwargs):
         tags = list(Tag.objects.all())

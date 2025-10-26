@@ -17,16 +17,22 @@ from django.views.decorators.http import require_POST
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
-from .models import UserProfile, Post, Rating, Collection, ReviewImage, ReviewLike, Review
+from .models import UserProfile, Post, Rating, Collection, ReviewImage, ReviewLike, Review, Tag
 from .forms import CustomUserCreationForm, PostForm, UserPreferenceForm, ProfileCreationForm, ReviewForm
 
 # ---------- Login View ----------
 def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('index_view')
+
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
+
+            request.session.set_expiry(1209600)
+
             profile, _ = UserProfile.objects.get_or_create(user=user)
             if profile.first_login:
                 return redirect('create_profile')
@@ -104,17 +110,24 @@ def index_view(request):
     # Base queryset for all posts
     posts = Post.objects.all()
 
-    # Top-rated posts (average rating >= 4)
+    # --- Top-rated posts ---
     top_rated_posts = Post.objects.annotate(
-        avg_rating=Avg('ratings__value')  # correct related_name
+        avg_rating=Avg('ratings__value')
     ).filter(avg_rating__gte=4).order_by('-avg_rating', '-created_at')
 
-    # Pagination for top-rated posts
+    # --- Get tags from top-rated posts ---
+    top_tags = (
+        Tag.objects.filter(posts__in=top_rated_posts)  # ✅ fix here
+        .annotate(tag_count=Count('posts'))
+        .order_by('-tag_count')[:6]
+    )
+
+    # --- Pagination for top-rated posts ---
     paginator = Paginator(top_rated_posts, 6)
     page_number = request.GET.get('page')
     travelers_page = paginator.get_page(page_number)
 
-    # Search functionality
+    # --- Search functionality ---
     if query:
         posts = posts.filter(
             Q(title__icontains=query) |
@@ -122,10 +135,10 @@ def index_view(request):
             Q(tags__name__icontains=query)
         ).distinct()
 
-    # Recommended posts
+    # --- Recommended posts ---
     recommended_posts = get_recommendations_for_user(request.user, top_n=6)
 
-    # Fallback if no recommendations
+    # --- Fallback recommendations ---
     if not recommended_posts.exists():
         user_profile = UserProfile.objects.filter(user=request.user).first()
         if user_profile and user_profile.tags.exists():
@@ -138,22 +151,23 @@ def index_view(request):
         else:
             recommended_posts = Post.objects.order_by('-created_at')[:6]
 
-    # Travelers’ Choice: posts with the highest single rating
+    # --- Travelers’ Choice ---
     travelers_choice = Post.objects.annotate(
-        max_rating=Max('ratings__value')  # correct related_name
-    ).order_by('-max_rating', '-created_at')[:6]  # top 6 posts
+        max_rating=Max('ratings__value')
+    ).order_by('-max_rating', '-created_at')[:6]
 
-    # Saved posts for the current user
+    # --- Saved posts ---
     collection, _ = Collection.objects.get_or_create(user=request.user)
     saved_posts = collection.posts.values_list('id', flat=True)
 
-    # Context for template
+    # --- Context ---
     context = {
         'posts': posts,
         'recommended_posts': recommended_posts,
         'travelers_choice': travelers_choice,
         'saved_posts': saved_posts,
         'travelers_page': travelers_page,
+        'top_tags': top_tags,  
     }
 
     return render(request, 'index.html', context)
@@ -435,3 +449,27 @@ def toggle_like_review(request, review_id):
         'liked': liked,
         'likes_count': review.likes_count,
     })
+    
+@login_required
+def tag_posts_view(request, tag_name):
+    # Get the tag or 404
+    tag = get_object_or_404(Tag, name=tag_name)
+    
+    # Get all posts that include this tag
+    posts = (
+        Post.objects.filter(tags=tag)
+        .annotate(avg_rating=Avg('ratings__value'))
+        .order_by('-created_at')
+    )
+
+    # Saved posts for the current user (for your heart/save logic)
+    collection, _ = Collection.objects.get_or_create(user=request.user)
+    saved_posts = collection.posts.values_list('id', flat=True)
+
+    context = {
+        'tag': tag,
+        'posts': posts,
+        'saved_posts': saved_posts,
+    }
+
+    return render(request, 'tag_posts.html', context)
